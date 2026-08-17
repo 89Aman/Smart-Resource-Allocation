@@ -6,6 +6,7 @@ export const environment = {
     projectId: 'sahaay-18eb3',
     appId: '1:193319651907:web:cbee5cdc37caed816362f6',
     storageBucket: 'sahaay-18eb3.firebasestorage.app',
+    databaseURL: 'https://sahaay-18eb3-default-rtdb.asia-southeast1.firebasedatabase.app',
     apiKey: 'AIzaSyABkk7cr5LBBpkN7zd8fIx_P38q3LtAhY4',
     authDomain: 'sahaay-18eb3.firebaseapp.com',
     messagingSenderId: '193319651907',

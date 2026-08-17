@@ -53,7 +53,7 @@ export interface SahaayNotification {
     <app-offline-banner></app-offline-banner>
     <mat-sidenav-container class="shell-wrapper">
       <mat-sidenav #chatSidenav mode="over" position="end" class="chat-sidenav">
-        <app-ai-chat></app-ai-chat>
+        <app-ai-chat (closeChat)="chatSidenav.close()"></app-ai-chat>
       </mat-sidenav>
 
       <mat-sidenav-content class="shell-content">
@@ -242,9 +242,11 @@ export interface SahaayNotification {
                 </div>
               </mat-menu>
 
-              <!-- AI Coordinator Assistant (Brand Harmonized Color) -->
-              <button mat-icon-button class="action-btn ai-assistant-btn" (click)="chatSidenav.toggle()" matTooltip="AI Coordinator Assistant">
-                <mat-icon fontSet="material-symbols-rounded">auto_awesome</mat-icon>
+              <!-- AI Coordinator Assistant (Brand Harmonized Trigger) -->
+              <button type="button" class="ai-assistant-trigger-pill" (click)="chatSidenav.toggle()" matTooltip="Open Sahaay AI Coordinator">
+                <mat-icon fontSet="material-symbols-rounded" class="sparkle-icon">auto_awesome</mat-icon>
+                <span class="ai-trigger-label">AI Coordinator</span>
+                <span class="pulse-live-beacon"></span>
               </button>
 
               <!-- User Profile Dropdown Button -->
@@ -359,9 +361,11 @@ export interface SahaayNotification {
     }
     
     .chat-sidenav {
-      width: 400px;
+      width: 480px;
       max-width: 100vw;
       border-left: 1px solid var(--color-border);
+      box-shadow: -8px 0 36px rgba(0, 56, 48, 0.18);
+      background-color: var(--color-surface);
     }
 
     .shell-content {
@@ -715,14 +719,48 @@ export interface SahaayNotification {
       animation: breatheGlow 2s infinite;
     }
 
-    .ai-assistant-btn {
-      color: var(--color-primary);
-      background: var(--color-primary-light);
-      border-radius: 50%;
-    }
-    .ai-assistant-btn:hover {
-      background: var(--color-primary);
-      color: var(--color-on-primary);
+    .ai-assistant-trigger-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 12px 5px 10px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(0, 81, 71, 0.08), rgba(10, 107, 94, 0.14));
+      border: 1.5px solid rgba(0, 81, 71, 0.22);
+      color: var(--color-primary, #005147);
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 4px rgba(0, 81, 71, 0.08);
+
+      .sparkle-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        color: #d97706;
+      }
+
+      .pulse-live-beacon {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #10b981;
+        box-shadow: 0 0 6px #10b981;
+      }
+
+      &:hover {
+        background: linear-gradient(135deg, #005147, #0a6b5e);
+        color: #ffffff;
+        border-color: #005147;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 81, 71, 0.25);
+
+        .sparkle-icon {
+          color: #fbbf24;
+        }
+      }
     }
 
     /* User Profile Trigger */

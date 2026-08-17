@@ -873,5 +873,27 @@ Use **Material Symbols Rounded** (Google) throughout for a softer, more modern f
 
 ---
 
-*Sahaay — सहाय — Built for India, powered by Google*
-*DESIGN.md — Last updated: April 2024*
+## 10. AI Coordinator Command Drawer & Telemetry
+
+### 10.1 Layout & Trigger
+- **Top Bar Trigger**: Glass pill button with rotating sparkle icon, `AI Coordinator` label, and live pulsing telemetry beacon (`#10b981`).
+- **Drawer Sidenav**: 480px width on desktop (100vw on mobile), deep elevation shadow `-8px 0 36px rgba(0, 56, 48, 0.18)`.
+- **Theme Palette**: Deep Emerald (`#003830` to `#005147`) gradient header, slate mint (`#0f766e`), warm canvas (`#f6f4f0`).
+
+### 10.2 Command Filter Strip
+Horizontal command pill track for rapid operational queries:
+- `/status` — Mumbai Ward 4 Command status
+- `/volunteers` — Available volunteer headcount & proximity
+- `/critical` — Emergency tickets in Dharavi and Kurla
+- `/surge` — 7-day monsoon surge prediction
+- `/vault` — Resource vault inventory levels
+
+### 10.3 Agent Response Cards
+- **Agent Attribution**: Tagged with specialist identifier (`MatchAgent`, `SurgeAgent`, `NarratorAgent`, `QueryAgent`).
+- **Urgency Tags**: `.badge-critical` in ruby (`#fee2e2`/`#991b1b`), `.badge-optimal` in green (`#dcfce7`/`#15803d`).
+- **1-Click Action Dock**: Direct navigation pills to `/needs-map`, `/tasks`, `/volunteers`, `/resource-vault`.
+
+---
+
+*Sahaay — सहाय — Built for Mumbai Disaster & Humanitarian Resilience*
+

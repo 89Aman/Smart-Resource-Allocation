@@ -1,11 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, collection, doc, docData, collectionData, query, where, orderBy, setDoc, updateDoc, deleteDoc, getDoc, limit, writeBatch, arrayUnion } from '@angular/fire/firestore';
-import { Observable, map, of } from 'rxjs';
+import { Observable, map, of, catchError } from 'rxjs';
 import { Need, Task, Volunteer, Activity, User, UserRole, InventoryItem, InventoryTransaction, Ngo, NgoStatus, NgoMembership, NotificationPreferences, DEFAULT_NOTIFICATION_PREFERENCES, TaskAssignment, TaskAssignmentStatus, TaskContact } from '../../models';
+import { RealtimeDatabaseService } from './realtime-database.service';
 
 @Injectable({ providedIn: 'root' })
 export class FirestoreService {
   private firestore = inject(Firestore);
+  private rtdb = inject(RealtimeDatabaseService, { optional: true });
 
   private assignmentId(taskId: string, volunteerId: string): string {
     return `${taskId}_${volunteerId}`;
@@ -15,36 +17,56 @@ export class FirestoreService {
   getOpenNeeds(): Observable<Need[]> {
     const needsRef = collection(this.firestore, 'needs');
     const q = query(needsRef, where('status', '==', 'open'), orderBy('urgency', 'desc'));
-    return collectionData(q, { idField: 'id' }) as Observable<Need[]>;
+    return (collectionData(q, { idField: 'id' }) as Observable<Need[]>).pipe(
+      catchError((err) => {
+        console.warn('[Firestore] Error on getOpenNeeds, switching to Realtime Database fallback:', err);
+        return this.rtdb ? this.rtdb.getOpenNeeds() : of([] as Need[]);
+      })
+    );
   }
 
   getNeedById(id: string): Observable<Need | undefined> {
     const needDoc = doc(this.firestore, `needs/${id}`);
-    return docData(needDoc, { idField: 'id' }) as Observable<Need | undefined>;
+    return (docData(needDoc, { idField: 'id' }) as Observable<Need | undefined>).pipe(
+      catchError(() => this.rtdb ? this.rtdb.getNeedById(id) : of(undefined))
+    );
   }
 
   async addNeed(need: Partial<Need>): Promise<void> {
     const newDocRef = doc(collection(this.firestore, 'needs'));
     const needWithId = { ...need, id: newDocRef.id };
     await setDoc(newDocRef, needWithId);
+    if (this.rtdb) {
+      await this.rtdb.addNeed(needWithId);
+    }
   }
 
   async updateNeed(id: string, data: Partial<Need>): Promise<void> {
     const needDoc = doc(this.firestore, `needs/${id}`);
     await updateDoc(needDoc, data);
+    if (this.rtdb) {
+      await this.rtdb.updateNeed(id, data);
+    }
   }
 
   // --- Tasks ---
   getActiveTasks(): Observable<Task[]> {
     const tasksRef = collection(this.firestore, 'tasks');
     const q = query(tasksRef, where('status', 'in', ['pending', 'active']));
-    return collectionData(q, { idField: 'id' }) as Observable<Task[]>;
+    return (collectionData(q, { idField: 'id' }) as Observable<Task[]>).pipe(
+      catchError((err) => {
+        console.warn('[Firestore] Error on getActiveTasks, switching to RTDB fallback:', err);
+        return this.rtdb ? this.rtdb.getActiveTasks() : of([] as Task[]);
+      })
+    );
   }
 
   getAllTasks(): Observable<Task[]> {
     const tasksRef = collection(this.firestore, 'tasks');
     const q = query(tasksRef, orderBy('createdAt', 'desc'));
-    return collectionData(q, { idField: 'id' }) as Observable<Task[]>;
+    return (collectionData(q, { idField: 'id' }) as Observable<Task[]>).pipe(
+      catchError(() => this.rtdb ? this.rtdb.getAllTasks() : of([] as Task[]))
+    );
   }
 
   getTasksByIds(ids: string[]): Observable<Task[]> {
@@ -64,13 +86,18 @@ export class FirestoreService {
       progress: task.progress || 0
     };
     await setDoc(newDocRef, taskWithId);
-
-	return newDocRef.id;
+    if (this.rtdb) {
+      await this.rtdb.addTask(taskWithId as any);
+    }
+    return newDocRef.id;
   }
 
   async updateTask(id: string, data: Partial<Task>): Promise<void> {
     const taskDoc = doc(this.firestore, `tasks/${id}`);
     await updateDoc(taskDoc, data);
+    if (this.rtdb) {
+      await this.rtdb.updateTask(id, data);
+    }
   }
 
   // --- Task Assignments (Requests + Accept/Decline) ---
@@ -169,22 +196,34 @@ export class FirestoreService {
   getAvailableVolunteers(): Observable<Volunteer[]> {
     const volunteersRef = collection(this.firestore, 'volunteers');
     const q = query(volunteersRef, where('available', '==', true));
-    return collectionData(q, { idField: 'id' }) as Observable<Volunteer[]>;
+    return (collectionData(q, { idField: 'id' }) as Observable<Volunteer[]>).pipe(
+      catchError((err) => {
+        console.warn('[Firestore] Error on getAvailableVolunteers, switching to RTDB fallback:', err);
+        return this.rtdb ? this.rtdb.getAvailableVolunteers() : of([] as Volunteer[]);
+      })
+    );
   }
 
   getAllVolunteers(): Observable<Volunteer[]> {
     const volunteersRef = collection(this.firestore, 'volunteers');
-    return collectionData(volunteersRef, { idField: 'id' }) as Observable<Volunteer[]>;
+    return (collectionData(volunteersRef, { idField: 'id' }) as Observable<Volunteer[]>).pipe(
+      catchError(() => this.rtdb ? this.rtdb.getAllVolunteers() : of([] as Volunteer[]))
+    );
   }
 
   getVolunteerById(id: string): Observable<Volunteer | undefined> {
     const volunteerDoc = doc(this.firestore, `volunteers/${id}`);
-    return docData(volunteerDoc, { idField: 'id' }) as Observable<Volunteer | undefined>;
+    return (docData(volunteerDoc, { idField: 'id' }) as Observable<Volunteer | undefined>).pipe(
+      catchError(() => this.rtdb ? this.rtdb.getVolunteerById(id) : of(undefined))
+    );
   }
 
   async updateVolunteer(id: string, data: Partial<Volunteer>): Promise<void> {
     const volunteerDoc = doc(this.firestore, `volunteers/${id}`);
     await updateDoc(volunteerDoc, data);
+    if (this.rtdb) {
+      await this.rtdb.updateVolunteer(id, data);
+    }
   }
 
   async addVolunteer(volunteer: Partial<Volunteer>): Promise<void> {
@@ -199,14 +238,12 @@ export class FirestoreService {
       available: true
     };
     await setDoc(doc(this.firestore, `volunteers/${id}`), volWithId);
+    if (this.rtdb) {
+      await this.rtdb.addVolunteer(volWithId);
+    }
   }
 
   async semanticSearch(queryStr: string): Promise<Need[]> {
-    // Note: To implement actual vector search from Angular, we typically call a Cloud Function
-    // that uses the Vertex AI embedding model and performs the vector search,
-    // because directly doing vector search in Firestore requires server-side admin SDK currently
-    // or direct extensions call if exposed.
-    // For now, this is a placeholder per the design.
     console.log('Semantic search requested for:', queryStr);
     return [];
   }
@@ -232,7 +269,6 @@ export class FirestoreService {
       updatedAt: new Date()
     });
     
-    // If becoming a volunteer, also ensure they exist in the volunteers collection for mapping
     if (role === 'volunteer' && status === 'approved') {
       const userData = await this.getUserById(uid);
       if (userData) {
@@ -254,29 +290,42 @@ export class FirestoreService {
       ...data,
       updatedAt: new Date()
     });
+    if (this.rtdb) {
+      await this.rtdb.updateUserProfile(uid, data);
+    }
   }
 
   async getUserById(uid: string): Promise<User | undefined> {
     const userDoc = doc(this.firestore, `users/${uid}`);
     const snapshot = await getDoc(userDoc);
-    return snapshot.exists() ? (snapshot.data() as User) : undefined;
+    if (snapshot.exists()) return snapshot.data() as User;
+    if (this.rtdb) {
+      return this.rtdb.getUserById(uid);
+    }
+    return undefined;
   }
 
   // --- Activities ---
   getRecentActivities(limitCount: number = 10): Observable<Activity[]> {
     const activitiesRef = collection(this.firestore, 'activities');
     const q = query(activitiesRef, orderBy('timestamp', 'desc'));
-    return collectionData(q, { idField: 'id' }) as Observable<Activity[]>;
+    return (collectionData(q, { idField: 'id' }) as Observable<Activity[]>).pipe(
+      catchError(() => this.rtdb ? this.rtdb.getRecentActivities() : of([] as Activity[]))
+    );
   }
 
   async logActivity(activity: Partial<Activity>): Promise<void> {
     const activitiesRef = collection(this.firestore, 'activities');
     const newDocRef = doc(activitiesRef);
-    await setDoc(newDocRef, {
+    const actWithId = {
       ...activity,
       id: newDocRef.id,
       timestamp: new Date()
-    });
+    };
+    await setDoc(newDocRef, actWithId);
+    if (this.rtdb) {
+      await this.rtdb.logActivity(actWithId);
+    }
   }
 
   getVolunteerActivities(volunteerId: string): Observable<Activity[]> {
@@ -289,7 +338,9 @@ export class FirestoreService {
   getInventoryItems(): Observable<InventoryItem[]> {
     const inventoryRef = collection(this.firestore, 'inventory');
     const q = query(inventoryRef, orderBy('name', 'asc'));
-    return collectionData(q, { idField: 'id' }) as Observable<InventoryItem[]>;
+    return (collectionData(q, { idField: 'id' }) as Observable<InventoryItem[]>).pipe(
+      catchError(() => this.rtdb ? this.rtdb.getInventoryItems() : of([] as InventoryItem[]))
+    );
   }
 
   getInventoryItemById(id: string): Observable<InventoryItem | undefined> {
@@ -305,6 +356,9 @@ export class FirestoreService {
       lastUpdated: new Date()
     };
     await setDoc(newDocRef, itemWithId);
+    if (this.rtdb) {
+      await this.rtdb.addInventoryItem(itemWithId);
+    }
   }
 
   async updateInventoryItem(id: string, data: Partial<InventoryItem>): Promise<void> {
@@ -313,6 +367,9 @@ export class FirestoreService {
       ...data,
       lastUpdated: new Date()
     });
+    if (this.rtdb) {
+      await this.rtdb.updateInventoryItem(id, data);
+    }
   }
 
   getInventoryTransactions(itemId?: string): Observable<InventoryTransaction[]> {
@@ -380,7 +437,9 @@ export class FirestoreService {
   getNgos(): Observable<Ngo[]> {
     const ngosRef = collection(this.firestore, 'ngos');
     const q = query(ngosRef, orderBy('name', 'asc'));
-    return collectionData(q, { idField: 'id' }) as Observable<Ngo[]>;
+    return (collectionData(q, { idField: 'id' }) as Observable<Ngo[]>).pipe(
+      catchError(() => this.rtdb ? this.rtdb.getNgos() : of([] as Ngo[]))
+    );
   }
 
   getActiveNgos(): Observable<Ngo[]> {
@@ -414,6 +473,9 @@ export class FirestoreService {
       updatedAt: new Date()
     };
     await setDoc(newDocRef, ngoWithId);
+    if (this.rtdb) {
+      await this.rtdb.addNgo(ngoWithId);
+    }
     return newDocRef.id;
   }
 
@@ -423,6 +485,9 @@ export class FirestoreService {
       ...data,
       updatedAt: new Date()
     });
+    if (this.rtdb) {
+      await this.rtdb.updateNgo(id, data);
+    }
   }
 
   async approveNgo(id: string, approvedByUid: string): Promise<void> {

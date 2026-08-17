@@ -25,14 +25,14 @@
 | 1   | Vertex AI Agent Engine        | OrchestratorAgent + 4 specialist agents                     |
 | 2   | Gemini 2.0 Flash              | Powers all agents                                           |
 | 3   | Firebase Cloud Functions (Go) | Security-hardened Go backends: AI Agents, Aadhaar KYC, Face Match |
-| 4   | Firebase Firestore            | Real-time listeners, offline persistence, vector search     |
-| 5   | Clerk + Firebase Auth bridge  | Clerk session JWTs + Go custom token bridge for Firestore rules |
-| 6   | Firebase Extensions           | Zero-code: photo→urgency, translate, summarise, chatbot     |
-| 7   | Firebase Cloud Messaging      | Push alerts for critical unassigned needs                   |
-| 8   | Firebase Storage              | Photos, ID docs, generated PDFs                             |
-| 9   | Cloud Trace                   | Per-agent latency + token usage                             |
-| 10  | Google Maps JS API            | Pin map, heatmap, proximity rings                           |
-| 11  | Google Forms + Sheets API     | NGO survey → Firestore pipeline                             |
+| 4   | Firebase Realtime Database    | Low-latency WebSocket real-time live synchronization        |
+| 5   | Firebase Firestore            | Structured queries, offline persistence, vector search      |
+| 6   | Clerk + Firebase Auth bridge  | Clerk session JWTs + Go custom token bridge for database rules |
+| 7   | Firebase Extensions           | Zero-code: photo->urgency, translate, summarise, chatbot    |
+| 8   | Firebase Cloud Messaging      | Push alerts for critical unassigned needs                   |
+| 9   | Firebase Storage              | Photos, ID docs, generated PDFs                             |
+| 10  | Cloud Trace                   | Per-agent latency + token usage                             |
+| 11  | Google Maps JS API            | Pin map, heatmap, proximity rings                           |
 | 12  | Angular 18                    | App framework — standalone components, Signals              |
 | 13  | Angular Material / MDC        | Material Design 3                                           |
 

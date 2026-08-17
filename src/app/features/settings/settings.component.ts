@@ -10,6 +10,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
 import { FirestoreService } from '../../core/firebase/firestore.service';
+import { RealtimeDatabaseService } from '../../core/firebase/realtime-database.service';
 import { StorageService } from '../../core/firebase/storage.service';
 import { Router } from '@angular/router';
 import { ThemeService } from '../../core/ui/theme.service';
@@ -328,6 +329,32 @@ import { UserRole } from '../../models';
               </div>
             </div>
             <mat-slide-toggle [checked]="true" (change)="toggleSetting('heatmapDefault')"></mat-slide-toggle>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 6: Database & Demo Grid Management -->
+      <section class="settings-section">
+        <div class="section-header">
+          <mat-icon fontSet="material-symbols-rounded">database</mat-icon>
+          <h2 class="section-title">Database & Realtime Grid Management</h2>
+        </div>
+
+        <div class="account-card">
+          <div class="setting-item" style="border: none; padding: 0;">
+            <div class="setting-info">
+              <div class="setting-icon-box ai">
+                <mat-icon fontSet="material-symbols-rounded">dataset</mat-icon>
+              </div>
+              <div>
+                <h3>Seed Minimal Crisis Grid Data</h3>
+                <p>Populate minimal mock emergency needs (Dharavi, Kurla, Govandi), verified volunteers, tasks, and vault inventory in Realtime Database.</p>
+              </div>
+            </div>
+            <button type="button" class="save-btn" (click)="seedDatabase()" [disabled]="isSeeding()">
+              <mat-icon fontSet="material-symbols-rounded">refresh</mat-icon>
+              <span>{{ isSeeding() ? 'Seeding...' : 'Seed Minimal Grid' }}</span>
+            </button>
           </div>
         </div>
       </section>
@@ -899,6 +926,7 @@ import { UserRole } from '../../models';
 export class SettingsComponent {
   private authService = inject(AuthService);
   private firestoreService = inject(FirestoreService);
+  private rtdbService = inject(RealtimeDatabaseService);
   private storageService = inject(StorageService);
   private router = inject(Router);
   private themeService = inject(ThemeService);
@@ -913,6 +941,7 @@ export class SettingsComponent {
   isUploadingUserAvatar = signal(false);
   isUploadingLogo = signal(false);
   isSavingOrgName = signal(false);
+  isSeeding = signal(false);
 
   isOrgOwner = computed(() => {
     const u = this.getUser();
@@ -1123,6 +1152,19 @@ export class SettingsComponent {
       } finally {
         this.isSavingOrgName.set(false);
       }
+    }
+  }
+
+  async seedDatabase() {
+    this.isSeeding.set(true);
+    try {
+      await this.rtdbService.seedMinimalMockData();
+      this.snackBar.open('Minimal crisis grid data (needs, volunteers, tasks, inventory, NGOs) populated!', 'OK', { duration: 4000 });
+    } catch (e) {
+      console.error('Failed to seed database:', e);
+      this.snackBar.open('Failed to seed database. Check console for details.', 'OK', { duration: 3000 });
+    } finally {
+      this.isSeeding.set(false);
     }
   }
 }
