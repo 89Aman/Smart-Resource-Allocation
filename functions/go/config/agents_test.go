@@ -52,8 +52,8 @@ func TestAgentIDsContainProject(t *testing.T) {
 		if !strings.Contains(id, "locations/") {
 			t.Errorf("Agent ID %q does not contain 'locations/' prefix", id)
 		}
-		if !strings.Contains(id, "reasoningEngines/") {
-			t.Errorf("Agent ID %q does not contain 'reasoningEngines/' prefix", id)
+		if !strings.Contains(id, "reasoningEngines/") && !strings.Contains(id, "agents/") {
+			t.Errorf("Agent ID %q does not contain 'reasoningEngines/' or 'agents/' prefix", id)
 		}
 	}
 }

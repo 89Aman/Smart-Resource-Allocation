@@ -1,6 +1,6 @@
 package config
 // Project B: AI + Functions
-const Project = "193319651907"
+const Project = "sahaay-26007"
 // Project A: Auth + Firestore + Storage
 const DataProject = "sahaay-18eb3"
 // Location for Cloud Functions and Vertex AI Agent Engine
@@ -19,7 +19,7 @@ const GeminiModel = "gemini-2.0-flash"
 // JWKS URL serves the public keys used to verify Clerk session JWTs.
 const ClerkIssuer = "https://classic-slug-92.clerk.accounts.dev"
 const ClerkJWKSURL = "https://classic-slug-92.clerk.accounts.dev/.well-known/jwks.json"
-const OrchestratorAgentID = "projects/193319651907/locations/us-west1/reasoningEngines/4322593625159499776"
+const OrchestratorAgentID = "projects/sahaay-26007/locations/us-central1/agents/agent_1786968510298"
 // Using Orchestrator as fallback for now.
 const MatchAgentID        = OrchestratorAgentID
 const SurgeAgentID        = OrchestratorAgentID
