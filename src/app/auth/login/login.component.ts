@@ -494,7 +494,7 @@ import { Subscription } from 'rxjs';
       width: 20px;
       height: 20px;
     }
-    .input-box input, .role-select {
+    .input-box input {
       flex: 1;
       border: none;
       background: transparent;
@@ -502,6 +502,23 @@ import { Subscription } from 'rxjs';
       font-size: 0.85rem;
       color: var(--color-text-primary);
       font-family: inherit;
+    }
+
+    .role-select {
+      flex: 1;
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 0.85rem;
+      color: var(--color-text-primary);
+      font-family: inherit;
+      cursor: pointer;
+
+      option {
+        background-color: var(--color-card, #141c19);
+        color: var(--color-text-primary, #f2f7f5);
+        padding: 8px 12px;
+      }
     }
 
     .submit-auth-btn {

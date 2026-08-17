@@ -189,6 +189,32 @@ body.dark,
 }
 
 /* ==========================================================================
+   Global Form Select & Option High-Contrast Styles
+   ========================================================================== */
+select {
+  color: var(--color-text-primary);
+  background-color: transparent;
+
+  option {
+    background-color: var(--color-card, #ffffff);
+    color: var(--color-text-primary, #111110);
+    padding: 8px 12px;
+  }
+}
+
+[data-theme='dark'] select option,
+.dark-theme select option {
+  background-color: #1a2723 !important;
+  color: #f2f7f5 !important;
+}
+
+[data-theme='light'] select option,
+.light-theme select option {
+  background-color: #ffffff !important;
+  color: #111110 !important;
+}
+
+/* ==========================================================================
    Animations & Transitions (Field Operations Console)
    ========================================================================== */
 @keyframes pulseRing {
