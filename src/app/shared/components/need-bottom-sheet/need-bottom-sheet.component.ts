@@ -1,162 +1,304 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_BOTTOM_SHEET_DATA, MatBottomSheetRef } from '@angular/material/bottom-sheet';
 import { Need } from '../../../models';
 import { RelativeTimePipe } from '../../pipes/relative-time.pipe';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-need-bottom-sheet',
   standalone: true,
   imports: [CommonModule, MatIconModule, MatButtonModule, RelativeTimePipe],
   template: `
-    <div class="bottom-sheet-container">
-      <div class="sheet-header">
-        <h2 class="title">{{ data.need.title }}</h2>
-        <button mat-icon-button (click)="close()">
-          <mat-icon>close</mat-icon>
+    <div class="need-sheet-card">
+      
+      <!-- Top Header Row -->
+      <div class="sheet-top-row">
+        <div class="sheet-title-group">
+          <div class="category-icon-box" [ngClass]="data.need.category">
+            <mat-icon fontSet="material-symbols-rounded">{{ getCategoryIcon(data.need.category) }}</mat-icon>
+          </div>
+          <div>
+            <div class="badge-row">
+              <span class="urgency-pill" [ngClass]="data.need.urgency">{{ data.need.urgency | uppercase }}</span>
+              <span class="cat-pill">{{ data.need.category | uppercase }}</span>
+              <span class="status-pill" [ngClass]="data.need.status">{{ data.need.status | uppercase }}</span>
+            </div>
+            <h2 class="need-sheet-title">{{ data.need.title }}</h2>
+          </div>
+        </div>
+
+        <button type="button" class="btn-close" (click)="close()" title="Close details">
+          <mat-icon fontSet="material-symbols-rounded">close</mat-icon>
         </button>
       </div>
 
-      <div class="badges">
-        <span class="category-badge">{{ data.need.category }}</span>
-        <span class="urgency-badge" [ngClass]="data.need.urgency">{{ data.need.urgency }}</span>
-        <span class="status-badge" [ngClass]="data.need.status">{{ data.need.status }}</span>
-      </div>
-
-      <div class="photo-preview" *ngIf="data.need.photoUrl">
-        <img [src]="data.need.photoUrl" alt="Crisis evidence">
-      </div>
-
-      <div class="section">
-        <p class="description" *ngIf="data.need.summary"><strong>Summary:</strong> {{ data.need.summary }}</p>
-        <p class="description"><strong>Details:</strong> {{ data.need.description }}</p>
-        <p class="description" *ngIf="data.need.descriptionHindi"><strong>Hindi:</strong> {{ data.need.descriptionHindi }}</p>
-      </div>
-
-      <div class="meta-info">
-        <div class="meta-item">
-          <mat-icon>location_on</mat-icon>
-          <span>{{ data.need.locationName }}</span>
-        </div>
-        <div class="meta-item">
-          <mat-icon>schedule</mat-icon>
-          <span>Reported {{ data.need.reportedAt | relativeTime }}</span>
-        </div>
-        <div class="meta-item" *ngIf="data.need.assignedVolunteers.length > 0">
-          <mat-icon>group</mat-icon>
-          <span>{{ data.need.assignedVolunteers.length }} volunteers assigned</span>
+      <!-- Description Body -->
+      <div class="sheet-body-content">
+        <p class="desc-text">{{ data.need.description }}</p>
+        
+        <div class="summary-box" *ngIf="data.need.summary">
+          <mat-icon fontSet="material-symbols-rounded">auto_awesome</mat-icon>
+          <p><strong>AI Summary:</strong> {{ data.need.summary }}</p>
         </div>
       </div>
 
-      <div class="actions">
-        <button mat-stroked-button color="primary" class="action-btn" (click)="openDirections()">
-          <mat-icon>directions</mat-icon> Get Route
+      <!-- Key Location & Field Meta Info -->
+      <div class="meta-strip">
+        <div class="meta-col">
+          <span class="meta-lbl">Incident Location</span>
+          <div class="meta-val">
+            <mat-icon fontSet="material-symbols-rounded">location_on</mat-icon>
+            <span>{{ data.need.locationName }}</span>
+          </div>
+        </div>
+
+        <div class="meta-col">
+          <span class="meta-lbl">Reported By & Time</span>
+          <div class="meta-val">
+            <mat-icon fontSet="material-symbols-rounded">schedule</mat-icon>
+            <span>{{ data.need.reportedBy || 'Field Unit' }} • {{ data.need.reportedAt | relativeTime }}</span>
+          </div>
+        </div>
+
+        <div class="meta-col">
+          <span class="meta-lbl">Assigned Responders</span>
+          <div class="meta-val">
+            <mat-icon fontSet="material-symbols-rounded">group</mat-icon>
+            <span>{{ data.need.assignedVolunteers.length }} volunteers active</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Action Row -->
+      <div class="sheet-actions-row">
+        <button type="button" class="btn-secondary" (click)="openDirections()">
+          <mat-icon fontSet="material-symbols-rounded">directions</mat-icon>
+          <span>Get Directions</span>
         </button>
-        <button mat-flat-button color="primary" class="action-btn" *ngIf="data.need.status === 'open'">
-          <mat-icon>assignment_ind</mat-icon> Assign Volunteers
+        <button type="button" class="btn-primary" (click)="assignVolunteers()">
+          <mat-icon fontSet="material-symbols-rounded">auto_awesome</mat-icon>
+          <span>Assign Volunteers (AI Match)</span>
         </button>
       </div>
+
     </div>
   `,
   styles: [`
-    .bottom-sheet-container {
-      padding: 8px 16px 24px;
-      font-family: var(--font-ui);
+    .need-sheet-card {
+      padding: 20px 24px;
+      font-family: var(--font-ui), sans-serif;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: var(--color-card, #ffffff);
+      color: var(--color-text-primary, #111827);
     }
-    .sheet-header {
+
+    /* Top Row */
+    .sheet-top-row {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 12px;
+      gap: 12px;
     }
-    .title {
-      font-family: var(--font-display);
-      margin: 0;
-      font-size: 1.5rem;
-      color: var(--color-text-primary);
-    }
-    .badges {
+
+    .sheet-title-group {
       display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
+      align-items: flex-start;
+      gap: 14px;
     }
-    .category-badge, .urgency-badge, .status-badge {
-      font-size: 0.75rem;
-      padding: 4px 10px;
-      border-radius: var(--radius-badge);
-      text-transform: uppercase;
-      font-weight: 600;
+
+    .category-icon-box {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      mat-icon { font-size: 22px; width: 22px; height: 22px; }
+
+      &.medical { background: #fee2e2; color: #dc2626; }
+      &.shelter { background: #fef3c7; color: #b45309; }
+      &.water { background: #e0f2fe; color: #0284c7; }
+      &.food { background: #f0fdf4; color: #16a34a; }
+      &.rescue { background: #f3e8ff; color: #7e22ce; }
     }
-    .category-badge { background: var(--color-info-light); color: var(--color-info); }
-    .urgency-badge.high, .urgency-badge.critical { background: var(--color-danger-light); color: var(--color-danger); }
-    .urgency-badge.medium { background: var(--color-warning-light); color: var(--color-warning); }
-    .urgency-badge.low { background: var(--color-success-light); color: var(--color-success); }
-    .status-badge.open { border: 1px solid var(--color-danger); color: var(--color-danger); }
-    .status-badge.assigned { border: 1px solid var(--color-primary); color: var(--color-primary); }
-    
-    .photo-preview {
-      width: 100%;
-      height: 180px;
-      margin-bottom: 20px;
-      border-radius: 12px;
-      overflow: hidden;
-      
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
+
+    .badge-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
     }
-    
-    .section {
-      margin-bottom: 20px;
+
+    .urgency-pill {
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+      &.critical { background: #fee2e2; color: #dc2626; }
+      &.high { background: #fef3c7; color: #b45309; }
+      &.medium { background: #e0f2fe; color: #0284c7; }
+      &.low { background: #f1f5f9; color: #64748b; }
     }
-    .description {
-      font-size: 0.95rem;
-      line-height: 1.5;
-      color: var(--color-text-secondary);
-      margin: 0 0 8px;
+
+    .cat-pill {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #f1f5f4;
+      color: #55605d;
     }
-    .description strong {
-      color: var(--color-text-primary);
+
+    .status-pill {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      &.open { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+      &.assigned { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
     }
-    
-    .meta-info {
-      background: var(--color-surface);
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 24px;
+
+    .need-sheet-title {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #005147;
+      margin: 0;
+      line-height: 1.25;
+    }
+
+    .btn-close {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      mat-icon { font-size: 20px; width: 20px; height: 20px; }
+      &:hover { background: rgba(0, 0, 0, 0.05); color: #1a201e; }
+    }
+
+    /* Body */
+    .sheet-body-content {
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
-    .meta-item {
+
+    .desc-text {
+      margin: 0;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      color: #475569;
+    }
+
+    .summary-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      background: #f0fdf4;
+      border-left: 3px solid #005147;
+      padding: 8px 12px;
+      border-radius: 4px;
+      mat-icon { font-size: 16px; width: 16px; height: 16px; color: #005147; margin-top: 2px; }
+      p { margin: 0; font-size: 0.78rem; color: #166534; line-height: 1.4; }
+    }
+
+    /* Meta Strip */
+    .meta-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      background: #f8faf9;
+      border: 1px solid #edf2f0;
+      border-radius: 8px;
+      padding: 10px 14px;
+    }
+
+    .meta-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .meta-lbl {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+    }
+
+    .meta-val {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 0.85rem;
-      color: var(--color-text-secondary);
+      gap: 5px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #1a201e;
+      mat-icon { font-size: 15px; width: 15px; height: 15px; color: #005147; }
     }
-    .meta-item mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-      color: var(--color-primary-mid);
-    }
-    
-    .actions {
+
+    /* Actions */
+    .sheet-actions-row {
       display: flex;
-      gap: 12px;
+      align-items: center;
+      gap: 10px;
+      padding-top: 4px;
     }
-    .action-btn {
+
+    .btn-primary {
       flex: 1;
-      border-radius: var(--radius-button);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: #005147;
+      color: #ffffff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      &:hover { background: #0a6b5e; }
+      mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: transparent;
+      color: #005147;
+      border: 1.5px solid #dce5e2;
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      &:hover { background: #f0fdf4; border-color: #005147; }
+      mat-icon { font-size: 18px; width: 18px; height: 18px; }
     }
   `]
 })
 export class NeedBottomSheetComponent {
+  private router = inject(Router);
+
   constructor(
     @Inject(MAT_BOTTOM_SHEET_DATA) public data: { need: Need },
     private bottomSheetRef: MatBottomSheetRef<NeedBottomSheetComponent>
@@ -166,8 +308,24 @@ export class NeedBottomSheetComponent {
     this.bottomSheetRef.dismiss();
   }
 
+  getCategoryIcon(category: string): string {
+    const icons: Record<string, string> = {
+      medical: 'medical_services',
+      shelter: 'home',
+      water: 'water_drop',
+      food: 'restaurant',
+      rescue: 'kayaking'
+    };
+    return icons[category] || 'emergency';
+  }
+
   openDirections() {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${this.data.need.lat},${this.data.need.lng}`;
     window.open(url, '_blank');
+  }
+
+  assignVolunteers() {
+    this.close();
+    this.router.navigate(['/tasks']);
   }
 }

@@ -105,8 +105,8 @@ import { MatButtonModule } from '@angular/material/button';
     .circle-icon.food { background: var(--color-warning-light); color: var(--color-warning); }
     .circle-icon.education { background: var(--color-info-light); color: var(--color-info); }
     .circle-icon.shelter { background: var(--color-success-light); color: var(--color-success); }
-    .circle-icon.water { background: #e0f2fe; color: #0284c7; }
-    .circle-icon.other { background: #f3f4f6; color: #4b5563; }
+    .circle-icon.water { background: var(--color-info-light); color: var(--color-info); }
+    .circle-icon.other { background: var(--color-surface-container); color: var(--color-text-secondary); }
     
     .title-wrap {
       display: flex;

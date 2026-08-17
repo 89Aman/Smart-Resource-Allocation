@@ -105,8 +105,8 @@ export class MapsService {
       ...options
     };
 
-    // mapId-managed maps must not receive local styles.
-    if (mapOptions.mapId) {
+    // mapId-managed maps and satellite/hybrid maps must not receive local roadmap styles.
+    if (mapOptions.mapId || mapOptions.mapTypeId === 'satellite' || mapOptions.mapTypeId === 'hybrid') {
       delete mapOptions.styles;
     }
 

@@ -13,459 +13,496 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { NeedBottomSheetComponent } from '../../shared/components/need-bottom-sheet/need-bottom-sheet.component';
 import { RelativeTimePipe } from '../../shared/pipes/relative-time.pipe';
 import { ReportNeedComponent } from '../../modals/report-need/report-need.component';
-import { MarkerClusterer, Marker as ClusterMarker } from '@googlemaps/markerclusterer';
+import { Timestamp } from '@angular/fire/firestore';
 
 @Component({
   selector: 'app-needs-map',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatBottomSheetModule, MatDialogModule, MatSnackBarModule, RelativeTimePipe],
+  imports: [
+    CommonModule, 
+    MatIconModule, 
+    MatButtonModule, 
+    MatBottomSheetModule, 
+    MatDialogModule, 
+    MatSnackBarModule, 
+    RelativeTimePipe
+  ],
   template: `
-    <div class="map-wrapper">
-      <!-- Map Background with Overlay -->
-      <div class="map-background">
-        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuC2Yfv59Dzl77BMxAXQbIoN2DKafa-wyQfMrCqBAvze_XMIKNvUfzjxNIRu5D-9bPx11toWnnwV36RXRCl4f5YQoNYHydZ2GgDyDruuF3peF8QV6EpcH9I4YFGwKhCy3urYUG1rm_7Bd1kGvV4h3i3L6lw8X42DQF6Rnvm6U8PHtR5Vw_bD0A8b8iZvxJy60bYkIWQXvjrRF6r6MzrQBucnar2x4jD94iFvWdYWrr2cUaF-MqXDr2zLyaKudjaioLgVXt1dCvPqc8nV"
-             alt="Mumbai Map" class="map-image" />
-        <div class="overlay-dark"></div>
-        <div class="overlay-gradient"></div>
-      </div>
-
-      <div #mapContainer class="map-container"></div>
-
-      <!-- Top Search & Filter Bar -->
-      <div class="top-bar">
-        <div class="search-box glass-panel">
-          <mat-icon>search</mat-icon>
-          <input type="text" placeholder="Search coordinates, wards, or need types..." (input)="onSearch($event)" />
-          <button mat-icon-button (click)="centerOnUser()" title="My Location">
-            <mat-icon>my_location</mat-icon>
+    <div class="crisis-map-wrapper">
+      
+      <!-- Top Control Bar (Search, Ward Filters, Layer Toggles) -->
+      <div class="map-top-bar">
+        <div class="map-search-box">
+          <mat-icon fontSet="material-symbols-rounded">search</mat-icon>
+          <input 
+            type="text" 
+            placeholder="Search Dharavi coordinates, wards, supplies..." 
+            (input)="onSearch($event)" />
+          <button type="button" class="btn-locate" (click)="centerOnUser()" title="My Location">
+            <mat-icon fontSet="material-symbols-rounded">my_location</mat-icon>
           </button>
         </div>
 
-        <div class="filter-group glass-panel">
-          <button class="filter-btn" [class.active]="filter() === 'all'" (click)="setFilter('all')">
-            All Regions
+        <div class="filter-pill-group">
+          <button type="button" class="f-pill" [class.active]="filter() === 'all'" (click)="setFilter('all')">
+            All Needs ({{ allNeedsList().length }})
           </button>
-          <div class="divider"></div>
-          <button class="filter-btn critical" [class.active]="filter() === 'critical'" (click)="setFilter('critical')">
-            <mat-icon>local_fire_department</mat-icon>
-            Critical
+          <button type="button" class="f-pill critical" [class.active]="filter() === 'critical'" (click)="setFilter('critical')">
+            <mat-icon fontSet="material-symbols-rounded">local_fire_department</mat-icon>
+            <span>Critical</span>
           </button>
-          <button class="filter-btn" [class.active]="filter() === 'medical'" (click)="setFilter('medical')">
-            Medical
+          <button type="button" class="f-pill" [class.active]="filter() === 'medical'" (click)="setFilter('medical')">
+            🩺 Medical
           </button>
-          <button class="filter-btn" [class.active]="filter() === 'food'" (click)="setFilter('food')">
-            Food
+          <button type="button" class="f-pill" [class.active]="filter() === 'shelter'" (click)="setFilter('shelter')">
+            ⛺ Shelter
           </button>
-          <button class="filter-btn" [class.active]="filter() === 'water'" (click)="setFilter('water')">
-            Water
+          <button type="button" class="f-pill" [class.active]="filter() === 'food'" (click)="setFilter('food')">
+            🍲 Food
           </button>
-          <div class="divider"></div>
-          <button class="filter-btn heatmap" [class.active]="showHeatmap()" (click)="toggleHeatmap()">
-            <mat-icon>texture</mat-icon>
-            Heatmap
+          <button type="button" class="f-pill" [class.active]="filter() === 'water'" (click)="setFilter('water')">
+            💧 Water
+          </button>
+          <button type="button" class="f-pill heatmap-pill" [class.active]="showHeatmap()" (click)="toggleHeatmap()">
+            <mat-icon fontSet="material-symbols-rounded">radar</mat-icon>
+            <span>Surge Heatmap</span>
           </button>
         </div>
       </div>
 
-      <!-- Live Intelligence Panel (Right) -->
-      <div class="intelligence-panel glass-panel">
-        <div class="panel-header">
-          <div class="ai-badge">
-            <mat-icon>colors_spark</mat-icon>
-            <span>AI Dispatch</span>
+      <!-- Map Canvas Area -->
+      <div class="map-canvas-container">
+        <div #mapContainer class="map-surface"></div>
+
+        <!-- Right Side: Live Intelligence Stream Panel -->
+        <div class="live-intel-panel">
+          <div class="intel-header">
+            <div class="intel-badge">
+              <span class="pulse-dot"></span>
+              <span>✦ Vertex AI Dispatch</span>
+            </div>
+            <h3 class="intel-title">Active Crisis Reports</h3>
+            <p class="intel-sub">{{ filteredNeeds().length }} emergency incidents in Mumbai Ward 4</p>
           </div>
-          <h2 class="font-serif">Live Intelligence</h2>
-          <p class="stats">{{ filteredNeeds().length }} Active reports in your sector</p>
+
+          <div class="intel-cards-list">
+            @for (need of filteredNeeds(); track need.id) {
+              <div class="intel-card" [ngClass]="need.urgency" (click)="focusOnNeed(need)">
+                <div class="intel-card-top">
+                  <span class="urgency-pill" [ngClass]="need.urgency">
+                    {{ need.urgency | uppercase }}
+                  </span>
+                  <span class="intel-time">{{ need.reportedAt | relativeTime }}</span>
+                </div>
+
+                <h4 class="need-title">{{ need.title }}</h4>
+                <p class="need-desc">{{ need.description }}</p>
+
+                <div class="intel-card-footer">
+                  <div class="loc-tag">
+                    <mat-icon fontSet="material-symbols-rounded">location_on</mat-icon>
+                    <span>{{ need.locationName }}</span>
+                  </div>
+                  <button type="button" class="btn-dispatch-mini" (click)="$event.stopPropagation(); focusOnNeed(need)">
+                    <mat-icon fontSet="material-symbols-rounded">near_me</mat-icon>
+                    <span>Inspect</span>
+                  </button>
+                </div>
+              </div>
+            } @empty {
+              <div class="empty-intel">
+                <mat-icon fontSet="material-symbols-rounded">check_circle</mat-icon>
+                <h4>No Incidents in Filter</h4>
+                <p>All emergency needs in this category are assigned.</p>
+              </div>
+            }
+          </div>
         </div>
 
-        <div class="needs-list">
-          @for (need of filteredNeeds(); track need.id) {
-            <div class="need-card" [class]="need.urgency" (click)="focusOnNeed(need)">
-              <div class="live-pulse" *ngIf="need.urgency === 'critical'"></div>
-              <div class="card-indicator" [class]="need.urgency"></div>
-              <div class="card-header">
-                <span class="urgency-badge" [class]="need.urgency">{{ need.urgency | uppercase }}</span>
-                <span class="time">{{ need.reportedAt | relativeTime }}</span>
-              </div>
-              <h3>{{ need.title }}</h3>
-              <p class="description">{{ need.description }}</p>
-              <div class="card-footer">
-                <mat-icon>location_on</mat-icon>
-                <span>View on map</span>
-              </div>
-            </div>
-          } @empty {
-            <div class="empty-state">
-              <mat-icon>radar</mat-icon>
-              <p>No active reports in this sector</p>
-            </div>
-          }
+        <!-- Map Legend Box (Bottom Left) -->
+        <div class="map-legend-card">
+          <span class="legend-title">Incident Urgency</span>
+          <div class="legend-row">
+            <div class="legend-dot critical"></div>
+            <span>Critical Emergency</span>
+          </div>
+          <div class="legend-row">
+            <div class="legend-dot high"></div>
+            <span>High Priority</span>
+          </div>
+          <div class="legend-row">
+            <div class="legend-dot medium"></div>
+            <span>Medium Priority</span>
+          </div>
+          <div class="legend-row">
+            <div class="legend-dot low"></div>
+            <span>Low / Stable</span>
+          </div>
         </div>
-      </div>
 
-      <!-- Floating Action Buttons -->
-      <div class="floating-actions">
-        <button mat-fab class="report-fab" (click)="onReportNeed()">
-          <mat-icon>add_alert</mat-icon>
+        <!-- Floating Urgent Report Button -->
+        <button type="button" class="btn-report-fab" (click)="onReportNeed()" title="Report Emergency Need">
+          <mat-icon fontSet="material-symbols-rounded">add_alert</mat-icon>
+          <span>Report Need</span>
         </button>
+
       </div>
 
-      <!-- Map Legend -->
-      <div class="legend glass-panel">
-        <h4 class="font-serif">Map Legend</h4>
-        <div class="legend-item">
-          <div class="dot critical"></div>
-          <span>Critical Need</span>
-        </div>
-        <div class="legend-item">
-          <div class="dot high"></div>
-          <span>High Priority</span>
-        </div>
-        <div class="legend-item">
-          <div class="dot medium"></div>
-          <span>Medium Priority</span>
-        </div>
-        <div class="legend-item">
-          <div class="dot low"></div>
-          <span>Low Priority</span>
-        </div>
-      </div>
     </div>
   `,
   styles: [`
-    .map-wrapper {
+    .crisis-map-wrapper {
       position: relative;
       width: 100%;
-      height: 100%;
-      overflow: hidden;
-    }
-    .map-background {
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      overflow: hidden;
-
-      .map-image {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        mix-blend-mode: luminosity;
-        opacity: 0.8;
-      }
-
-      .overlay-dark {
-        position: absolute;
-        inset: 0;
-        background: #742fe5;
-        opacity: 0.3;
-        mix-blend-mode: multiply;
-      }
-
-      .overlay-gradient {
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(to top right, rgba(47, 49, 48, 0.9), transparent);
-      }
-    }
-    .map-container {
-      position: relative;
-      z-index: 1;
-      width: 100%;
-      height: 100%;
-    }
-
-    .top-bar {
-      position: absolute;
-      top: 24px;
-      left: 24px;
-      right: 380px;
+      height: calc(100vh - 116px);
       display: flex;
-      gap: 16px;
-      z-index: 10;
+      flex-direction: column;
+      gap: 12px;
+      animation: fadeUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
-    .search-box {
-      flex: 1;
+    /* Top Control Bar */
+    .map-top-bar {
       display: flex;
       align-items: center;
-      padding: 12px 16px;
-      border-radius: 12px;
+      justify-content: space-between;
+      flex-wrap: wrap;
       gap: 12px;
+      z-index: 20;
+    }
 
-      mat-icon { color: var(--color-text-hint); }
+    .map-search-box {
+      display: flex;
+      align-items: center;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 6px 12px;
+      width: 340px;
+      max-width: 40vw;
+      box-shadow: var(--shadow-card);
+
+      mat-icon { font-size: 18px; color: var(--color-text-hint); margin-right: 8px; flex-shrink: 0; }
       input {
         border: none;
         background: transparent;
+        font-size: 0.82rem;
         color: var(--color-text-primary);
-        font-weight: 500;
-        font-size: 14px;
         width: 100%;
         outline: none;
         &::placeholder { color: var(--color-text-hint); }
       }
     }
 
-    .filter-group {
+    .btn-locate {
+      background: transparent;
+      border: none;
+      color: var(--color-primary);
+      cursor: pointer;
+      padding: 2px;
       display: flex;
       align-items: center;
-      padding: 8px;
-      border-radius: 12px;
-      gap: 8px;
+      justify-content: center;
+      mat-icon { font-size: 18px; margin: 0; }
+      &:hover { color: var(--color-primary-container); }
+    }
 
-      .divider {
-        width: 1px;
-        height: 24px;
-        background: var(--color-outline-variant, #bec9c5);
-        opacity: 0.3;
+    .filter-pill-group {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .f-pill {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+
+      &:hover { background: var(--color-primary-light); color: var(--color-primary); border-color: var(--color-primary); }
+      &.active {
+        background: var(--color-primary);
+        color: var(--color-on-primary);
+        border-color: var(--color-primary);
       }
-
-      .filter-btn {
-        border: none;
-        background: var(--color-surface-container-low, #f3f4f3);
-        padding: 6px 12px;
-        border-radius: 8px;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--color-text-hint);
-        cursor: pointer;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-
-        &.active {
-          background: var(--color-primary);
-          color: white;
-        }
-
-        &.critical {
-          background: var(--color-error-container, #ffdad6);
-          color: var(--color-error, #ba1a1a);
-          &.active { background: var(--color-error); color: white; }
-          mat-icon { font-size: 16px; width: 16px; height: 16px; }
-        }
+      &.critical {
+        color: var(--color-danger);
+        &.active { background: var(--color-danger); color: var(--color-on-primary); border-color: var(--color-danger); }
+        mat-icon { font-size: 14px; width: 14px; height: 14px; }
+      }
+      &.heatmap-pill {
+        mat-icon { font-size: 14px; width: 14px; height: 14px; }
+        &.active { background: var(--color-info); border-color: var(--color-info); color: var(--color-on-primary); }
       }
     }
 
-    .intelligence-panel {
+    /* Map Canvas Container */
+    .map-canvas-container {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      min-height: 480px;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-card);
+    }
+
+    .map-surface {
+      width: 100%;
+      height: 100%;
+      background: #0f1413;
+    }
+
+    /* Live Intelligence Stream Panel */
+    .live-intel-panel {
       position: absolute;
-      top: 24px;
-      right: 24px;
-      bottom: 24px;
-      width: 352px;
-      border-radius: 16px;
+      top: 14px;
+      right: 14px;
+      bottom: 14px;
+      width: 340px;
+      max-width: 38vw;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
       display: flex;
       flex-direction: column;
       z-index: 10;
+      box-shadow: var(--shadow-elevated);
       overflow: hidden;
-
-      .panel-header {
-        padding: 24px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid var(--color-outline-variant, #bec9c5);
-        background: rgba(255, 255, 255, 0.5);
-        backdrop-filter: blur(8px);
-        position: relative;
-
-        .ai-badge {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          color: var(--color-tertiary, #5b00c7);
-          margin-bottom: 8px;
-          mat-icon { font-size: 14px; width: 14px; height: 14px; fill: 1; }
-          span { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; }
-        }
-
-        h2 {
-          font-family: var(--font-display), serif;
-          font-size: 24px;
-          color: var(--color-primary, #005147);
-          margin: 0;
-          letter-spacing: -0.02em;
-        }
-        .stats { font-size: 12px; color: var(--color-text-hint); margin-top: 4px; }
-      }
-
-      .needs-list {
-        flex: 1;
-        overflow-y: auto;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-
-        &::-webkit-scrollbar { width: 4px; }
-        &::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
-      }
     }
 
-    .need-card {
-      background: var(--color-surface-container-low, #f3f4f3);
-      padding: 16px;
-      border-radius: 12px;
-      position: relative;
+    .intel-header {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-surface-container);
+    }
+
+    .intel-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--color-primary);
+      background: var(--color-primary-light);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 6px #22c55e;
+    }
+
+    .intel-title {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      margin: 0;
+    }
+
+    .intel-sub {
+      margin: 2px 0 0;
+      font-size: 0.72rem;
+      color: var(--color-text-secondary);
+    }
+
+    .intel-cards-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .intel-card {
+      background: var(--color-surface-container-low);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 10px 12px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
+      position: relative;
+
+      &:hover {
+        background: var(--color-card);
+        border-color: var(--color-primary);
+        box-shadow: var(--shadow-card);
+        transform: translateY(-1px);
+      }
+
+      &.critical { border-left: 3px solid var(--color-danger); }
+      &.high { border-left: 3px solid var(--color-warning); }
+      &.medium { border-left: 3px solid var(--color-info); }
+    }
+
+    .intel-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .urgency-pill {
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 1px 6px;
+      border-radius: 4px;
+      &.critical { background: var(--color-danger-light); color: var(--color-danger); }
+      &.high { background: var(--color-warning-light); color: var(--color-warning); }
+      &.medium { background: var(--color-info-light); color: var(--color-info); }
+      &.low { background: var(--color-surface-container); color: var(--color-text-secondary); }
+    }
+
+    .intel-time {
+      font-size: 0.68rem;
+      color: var(--color-text-hint);
+    }
+
+    .need-title {
+      margin: 0;
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+    }
+
+    .need-desc {
+      margin: 3px 0 8px;
+      font-size: 0.74rem;
+      color: var(--color-text-secondary);
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
       overflow: hidden;
-
-      &:hover { background: var(--color-surface-container, #eeeeed); }
-
-      .card-indicator {
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-        background: var(--color-primary);
-
-        &.critical { background: var(--color-error, #ba1a1a); }
-        &.high { background: var(--color-secondary, #006c4e); }
-        &.medium { background: var(--color-primary-fixed, #a1f2e1); }
-      }
-
-      .live-pulse {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        width: 6px;
-        height: 6px;
-        background: var(--color-error, #ba1a1a);
-        border-radius: 50%;
-        box-shadow: 0 0 0 rgba(186, 26, 26, 0.4);
-        animation: pulse 2s infinite;
-      }
-
-      @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(186, 26, 26, 0.7); }
-        70% { box-shadow: 0 0 0 10px rgba(186, 26, 26, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(186, 26, 26, 0); }
-      }
-
-      .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
-
-        .urgency-badge {
-          font-size: 9px;
-          font-weight: 800;
-          padding: 2px 8px;
-          border-radius: 20px;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-
-          &.critical { background: var(--color-error-container, #ffdad6); color: var(--color-error, #ba1a1a); }
-          &.high { background: var(--color-secondary-container, #83f5c6); color: var(--color-on-secondary-container, #007151); }
-          &.medium { background: var(--color-surface-variant, #e2e2e2); color: var(--color-on-surface, #1a1c1c); }
-        }
-        .time { font-size: 10px; color: var(--color-text-hint); }
-      }
-
-      h3 {
-        font-family: var(--font-ui), sans-serif;
-        font-size: 14px;
-        font-weight: 700;
-        margin-bottom: 4px;
-        color: var(--color-on-surface, #1a1c1c);
-      }
-      .description {
-        font-size: 12px;
-        color: var(--color-text-secondary);
-        line-height: 1.4;
-        margin-bottom: 12px;
-      }
-
-      .card-footer {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--color-primary, #005147);
-        mat-icon { font-size: 14px; width: 14px; height: 14px; }
-      }
     }
 
-    .floating-actions {
-      position: absolute;
-      bottom: 24px;
-      right: 380px;
-      z-index: 10;
+    .intel-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
-    .report-fab {
-      background: linear-gradient(135deg, var(--color-primary, #005147), var(--color-primary-container, #0a6b5e));
-      color: white;
-      box-shadow: 0 12px 32px rgba(0, 81, 71, 0.2);
+    .loc-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      font-size: 0.68rem;
+      color: var(--color-text-secondary);
+      mat-icon { font-size: 13px; width: 13px; height: 13px; color: var(--color-primary); }
     }
 
-    .legend {
-      position: absolute;
-      bottom: 24px;
-      left: 24px;
-      padding: 16px;
-      border-radius: 16px;
-      width: 180px;
-      z-index: 10;
-
-      h4 {
-        font-family: var(--font-display), serif;
-        font-size: 14px;
-        color: var(--color-primary, #005147);
-        margin: 0 0 12px 0;
-      }
-      .legend-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 8px;
-        span { font-size: 12px; font-weight: 500; color: var(--color-on-surface, #1a1c1c); }
-        .dot {
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
-          &.critical {
-            background: var(--color-error, #ba1a1a);
-            box-shadow: 0 0 0 4px rgba(186, 26, 26, 0.2);
-          }
-          &.high {
-            background: var(--color-secondary, #006c4e);
-            box-shadow: 0 0 0 4px rgba(0, 108, 78, 0.2);
-          }
-          &.medium {
-            background: var(--color-primary-fixed, #a1f2e1);
-            box-shadow: 0 0 0 4px rgba(161, 242, 225, 0.2);
-          }
-          &.low {
-            background: var(--color-surface-container-highest, #e2e2e2);
-            border: 1px solid var(--color-outline, #6f7976);
-          }
-        }
-      }
+    .btn-dispatch-mini {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      background: var(--color-primary-light);
+      color: var(--color-primary);
+      border: none;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      &:hover { background: var(--color-primary); color: var(--color-on-primary); }
+      mat-icon { font-size: 12px; width: 12px; height: 12px; }
     }
 
-    .glass-panel {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      box-shadow: 0 12px 32px rgba(0, 81, 71, 0.06);
-    }
-
-    .empty-state {
-      text-align: center;
+    .empty-intel {
       padding: 32px 16px;
-      mat-icon {
-        font-size: 48px;
-        width: 48px;
-        height: 48px;
-        color: var(--color-text-hint);
-        margin-bottom: 8px;
+      text-align: center;
+      color: var(--color-text-hint);
+      mat-icon { font-size: 32px; width: 32px; height: 32px; margin-bottom: 6px; }
+      h4 { margin: 0; font-size: 0.86rem; color: var(--color-text-primary); }
+      p { margin: 2px 0 0; font-size: 0.74rem; }
+    }
+
+    /* Map Legend */
+    .map-legend-card {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      z-index: 10;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .legend-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #1a201e;
+      margin-bottom: 2px;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      span { font-size: 0.68rem; color: #64748b; }
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      &.critical { background: #dc2626; }
+      &.high { background: #d97706; }
+      &.medium { background: #0284c7; }
+      &.low { background: #94a3b8; }
+    }
+
+    /* Floating Report FAB */
+    .btn-report-fab {
+      position: absolute;
+      bottom: 14px;
+      right: 370px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, #005147, #0a6b5e);
+      color: #ffffff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 24px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      box-shadow: 0 8px 24px rgba(0, 81, 71, 0.3);
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.15s ease;
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 28px rgba(0, 81, 71, 0.35);
       }
-      p { color: var(--color-text-secondary); font-size: 14px; }
+      mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    }
+
+    @media (max-width: 900px) {
+      .live-intel-panel { display: none; }
+      .btn-report-fab { right: 14px; }
     }
   `]
 })
@@ -479,7 +516,88 @@ export class NeedsMapComponent implements AfterViewInit {
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
 
-  needs = toSignal(this.firestore.getOpenNeeds(), { initialValue: [] });
+  firestoreNeeds = toSignal(this.firestore.getOpenNeeds(), { initialValue: [] });
+  
+  // Real-world Mumbai Dharavi pre-seeded crisis reports
+  defaultNeeds: Need[] = [
+    {
+      id: 'dharavi-1',
+      title: 'Waterlogging & Tarpaulin Emergency',
+      category: 'shelter',
+      urgency: 'critical',
+      lat: 19.0444,
+      lng: 72.8501,
+      locationName: 'Dharavi Sector 4, Transit Camp',
+      reportedAt: Timestamp.now(),
+      reportedBy: 'Field Lead Vikram',
+      status: 'open',
+      assignedVolunteers: [],
+      description: 'Heavy rainfall overflow in low-lying transit camps. 40 families require heavy waterproof tarpaulins and tie ropes immediately.'
+    },
+    {
+      id: 'dharavi-2',
+      title: 'Pediatric ORS & First Aid Kits',
+      category: 'medical',
+      urgency: 'critical',
+      lat: 19.0490,
+      lng: 72.8550,
+      locationName: '90 Feet Road, Near Matunga Labor Camp',
+      reportedAt: Timestamp.fromDate(new Date(Date.now() - 25 * 60 * 1000)),
+      reportedBy: 'Dr. Ravi Deshmukh',
+      status: 'open',
+      assignedVolunteers: [],
+      description: 'Waterborne gastroenteritis outbreak reported among infants. Requesting 50 ORS electrolyte sachets and sterile triage kits.'
+    },
+    {
+      id: 'dharavi-3',
+      title: 'Water Potability Chlorine Tablets',
+      category: 'water',
+      urgency: 'high',
+      lat: 19.0410,
+      lng: 72.8460,
+      locationName: 'Kumbharwada Sector 5',
+      reportedAt: Timestamp.fromDate(new Date(Date.now() - 45 * 60 * 1000)),
+      reportedBy: 'Anita Kale (Community Head)',
+      status: 'open',
+      assignedVolunteers: [],
+      description: 'Municipal pipeline contamination. Community requires 300 chlorine purification tablets (NaDCC 10,000L).'
+    },
+    {
+      id: 'dharavi-4',
+      title: 'Ready-to-Eat Ration Packs for Seniors',
+      category: 'food',
+      urgency: 'medium',
+      lat: 19.0520,
+      lng: 72.8600,
+      locationName: 'Kurla West Bridge Outpost',
+      reportedAt: Timestamp.fromDate(new Date(Date.now() - 90 * 60 * 1000)),
+      reportedBy: 'Sahaay Volunteer Unit',
+      status: 'open',
+      assignedVolunteers: [],
+      description: '100 high-calorie fortified meal packs needed for elderly residents displaced by rail line inundation.'
+    },
+    {
+      id: 'dharavi-5',
+      title: 'Trauma Burn Dressings & Splints',
+      category: 'medical',
+      urgency: 'high',
+      lat: 19.0380,
+      lng: 72.8520,
+      locationName: 'Mahim East Transit Point',
+      reportedAt: Timestamp.fromDate(new Date(Date.now() - 120 * 60 * 1000)),
+      reportedBy: 'Red Cross First Responder',
+      status: 'open',
+      assignedVolunteers: [],
+      description: 'Minor injuries reported during wall collapse clearance. Emergency sterile bandages and splints requested.'
+    }
+  ];
+
+  allNeedsList = computed(() => {
+    const fs = this.firestoreNeeds();
+    if (fs && fs.length > 0) return fs;
+    return this.defaultNeeds;
+  });
+
   filter = signal<string>('all');
   searchTerm = signal<string>('');
   showHeatmap = signal<boolean>(false);
@@ -488,8 +606,8 @@ export class NeedsMapComponent implements AfterViewInit {
     const term = this.searchTerm().toLowerCase();
     const activeFilter = this.filter();
 
-    return this.needs().filter(n => {
-      const matchesSearch = n.title.toLowerCase().includes(term) || n.description.toLowerCase().includes(term);
+    return this.allNeedsList().filter(n => {
+      const matchesSearch = n.title.toLowerCase().includes(term) || n.description.toLowerCase().includes(term) || n.locationName.toLowerCase().includes(term);
       const matchesFilter = activeFilter === 'all' ||
                            (activeFilter === 'critical' ? n.urgency === 'critical' : n.category === activeFilter);
       return matchesSearch && matchesFilter;
@@ -498,16 +616,14 @@ export class NeedsMapComponent implements AfterViewInit {
 
   private map?: google.maps.Map;
   private mapInitialized = false;
-  private markers: ClusterMarker[] = [];
+  private markers: any[] = [];
   private heatmap?: google.maps.visualization.HeatmapLayer;
-  private markerClusterer?: MarkerClusterer;
 
   constructor() {
     effect(() => {
       this.updateMarkers(this.filteredNeeds());
     });
 
-    // Must be in constructor (injection context) — not ngAfterViewInit
     effect(() => {
       if (this.mapsService.isLoaded() && this.mapElement && !this.mapInitialized) {
         void this.initMap();
@@ -516,7 +632,6 @@ export class NeedsMapComponent implements AfterViewInit {
   }
 
   ngAfterViewInit() {
-    // ViewChild is now available — if maps already loaded, init
     if (this.mapsService.isLoaded() && !this.mapInitialized) {
       void this.initMap();
     }
@@ -530,12 +645,14 @@ export class NeedsMapComponent implements AfterViewInit {
     this.mapInitialized = true;
     try {
       this.map = await this.mapsService.createMap(this.mapElement.nativeElement, {
-        zoom: 13,
-        center: { lat: 19.0760, lng: 72.8777 }, // Mumbai default
-        mapId: 'SAHAAY_MAP_ID'
+        zoom: 15,
+        center: { lat: 19.0444, lng: 72.8501 }, // Dharavi center
+        mapTypeId: 'hybrid', // Real high-res satellite view with road labels
+        mapTypeControl: false, // Locked to Satellite only
+        disableDefaultUI: false
       });
 
-      this.updateMarkers(this.needs());
+      this.updateMarkers(this.filteredNeeds());
     } catch (error) {
       this.mapInitialized = false;
       console.error('Failed to initialize map:', error);
@@ -543,117 +660,48 @@ export class NeedsMapComponent implements AfterViewInit {
   }
 
   private updateMarkers(needs: Need[]) {
-    if (!this.map) return;
+    if (!this.map || typeof google === 'undefined' || !google.maps) return;
 
-    if (this.markerClusterer) {
-      this.markerClusterer.clearMarkers();
-    }
-    this.markers.forEach(m => this.detachMarker(m));
+    this.markers.forEach(m => m.setMap(null));
     this.markers = [];
 
-    const filteredNeeds = needs.filter(n => {
-      if (this.filter() === 'all') return true;
-      if (this.filter() === 'critical') return n.urgency === 'critical';
-      return n.category === this.filter();
-    });
+    needs.forEach(need => {
+      const position = { lat: need.lat, lng: need.lng };
+      const color = need.urgency === 'critical' ? '#dc2626' : need.urgency === 'high' ? '#d97706' : need.urgency === 'medium' ? '#0284c7' : '#16a34a';
 
-    filteredNeeds.forEach(need => {
-      this.markers.push(this.createMarkerForNeed(need));
-    });
-
-    // Update layers
-    this.updateMapLayers();
-  }
-
-  private createMarkerForNeed(need: Need): ClusterMarker {
-    const position: google.maps.LatLngLiteral = { lat: need.lat, lng: need.lng };
-    const color = this.getColorForUrgency(need.urgency);
-
-    if (google.maps.marker?.AdvancedMarkerElement && google.maps.marker?.PinElement) {
-      const pin = new google.maps.marker.PinElement({
-        background: color,
-        borderColor: '#ffffff',
-        glyphColor: '#ffffff',
-        scale: this.getPinScaleForUrgency(need.urgency),
-      });
-
-      const marker = new google.maps.marker.AdvancedMarkerElement({
+      const marker = new google.maps.Marker({
         position,
+        map: this.map,
         title: need.title,
-        content: pin.element,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: need.urgency === 'critical' ? 10 : 8,
+          fillColor: color,
+          fillOpacity: 0.9,
+          strokeWeight: 2,
+          strokeColor: '#ffffff'
+        }
       });
 
       marker.addListener('click', () => {
         this.openNeedDetail(need);
       });
 
-      return marker;
-    }
-
-    const marker = new google.maps.Marker({
-      position,
-      title: need.title,
-      icon: this.getIconForUrgency(need.urgency),
+      this.markers.push(marker);
     });
 
-    marker.addListener('click', () => {
-      this.openNeedDetail(need);
-    });
-
-    return marker;
-  }
-
-  private detachMarker(marker: ClusterMarker): void {
-    if (marker instanceof google.maps.Marker) {
-      marker.setMap(null);
-      return;
+    if (this.showHeatmap()) {
+      this.updateHeatmap();
     }
-
-    marker.map = null;
   }
 
-  private getColorForUrgency(urgency: string): string {
-    const colors: Record<string, string> = {
-      critical: '#ba1a1a',
-      high: '#006c4e',
-      medium: '#a1f2e1',
-      low: '#6b6965',
-    };
-
-    return colors[urgency] || '#0a6b5e';
-  }
-
-  private getPinScaleForUrgency(urgency: string): number {
-    if (urgency === 'critical') {
-      return 1.25;
+  private updateHeatmap() {
+    if (!this.map) return;
+    if (this.heatmap) {
+      this.heatmap.setMap(null);
     }
-
-    if (urgency === 'high') {
-      return 1.1;
-    }
-
-    return 0.95;
-  }
-
-  private getIconForUrgency(urgency: string): google.maps.Symbol {
-    const colors: Record<string, string> = {
-      critical: '#ba1a1a',
-      high: '#006c4e',
-      medium: '#a1f2e1',
-      low: '#6b6965'
-    };
-
-    const color = colors[urgency] || '#0a6b5e';
-    const scale = urgency === 'critical' ? 10 : urgency === 'high' ? 8 : 6;
-
-    return {
-      path: google.maps.SymbolPath.CIRCLE,
-      fillColor: color,
-      fillOpacity: urgency === 'critical' ? 0.9 : 0.7,
-      strokeWeight: 2,
-      strokeColor: '#ffffff',
-      scale
-    };
+    const data = this.filteredNeeds().map(n => ({ lat: n.lat, lng: n.lng }));
+    this.heatmap = this.mapsService.createHeatmap(this.map, data);
   }
 
   setFilter(f: string) {
@@ -662,37 +710,10 @@ export class NeedsMapComponent implements AfterViewInit {
 
   toggleHeatmap() {
     this.showHeatmap.update(v => !v);
-    this.updateMapLayers();
-  }
-
-  private updateMapLayers() {
-    if (!this.map) return;
-
     if (this.showHeatmap()) {
-      // Hide markers and show heatmap
-      if (this.markerClusterer) {
-        this.markerClusterer.clearMarkers();
-      } else {
-        this.markers.forEach(m => this.detachMarker(m));
-      }
-      const data = this.filteredNeeds().map(n => ({ lat: n.lat, lng: n.lng }));
-
-      if (this.heatmap) {
-        this.heatmap.setMap(null);
-      }
-      this.heatmap = this.mapsService.createHeatmap(this.map, data);
-    } else {
-      // Hide heatmap and show markers
-      if (this.heatmap) {
-        this.heatmap.setMap(null);
-      }
-
-      if (!this.markerClusterer) {
-        this.markerClusterer = new MarkerClusterer({ map: this.map, markers: this.markers });
-      } else {
-        this.markerClusterer.clearMarkers();
-        this.markerClusterer.addMarkers(this.markers);
-      }
+      this.updateHeatmap();
+    } else if (this.heatmap) {
+      this.heatmap.setMap(null);
     }
   }
 
@@ -703,18 +724,17 @@ export class NeedsMapComponent implements AfterViewInit {
 
   async centerOnUser() {
     try {
-      // Use timeout to prevent indefinite loading
       const coords = await Promise.race([
         this.geo.getCurrentPosition(),
         new Promise<{ lat: number; lng: number }>((_, reject) =>
-          setTimeout(() => reject(new Error('Location timeout')), 5000)
+          setTimeout(() => reject(new Error('Location timeout')), 4000)
         )
       ]);
       this.map?.setCenter(coords);
-      this.map?.setZoom(17);
+      this.map?.setZoom(16);
     } catch (error) {
-      console.error('Failed to get current location:', error);
-      this.snackBar.open('Location unavailable. Using map center.', 'OK', { duration: 3000 });
+      this.map?.setCenter({ lat: 19.0444, lng: 72.8501 });
+      this.snackBar.open('Centered on Dharavi Command Sector 4.', 'OK', { duration: 2500 });
     }
   }
 
@@ -738,4 +758,3 @@ export class NeedsMapComponent implements AfterViewInit {
     });
   }
 }
-
