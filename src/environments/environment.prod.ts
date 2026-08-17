@@ -27,7 +27,7 @@ export const environment = {
   vertexAiProject: 'sahaay-26007',
 
   // ── Google Maps JS API ───────────────────────────────────────
-  mapsApiKey: 'AIzaSyDO0y2NoC8JUfQ4-HHOMTi4Y-HdybgfoVk',
+  mapsApiKey: 'AIzaSyDa4UfBq4fjQ8499Efw6wuZbmvLaiFaBKE',
 
   // ── Supabase Configuration ────────────────────────────────────
   supabase: {
