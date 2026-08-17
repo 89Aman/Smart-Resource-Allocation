@@ -17,4 +17,6 @@ export interface Volunteer {
   active: boolean;
   lastActive?: Timestamp;
   region?: string;
+  locationName?: string;
+  faceVerified?: boolean;
 }
