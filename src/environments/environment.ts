@@ -28,5 +28,12 @@ export const environment = {
 
   // ── Google Maps JS API ───────────────────────────────────────
   // Obtain from: Google Cloud Console → APIs & Services → Credentials
-  mapsApiKey: 'AIzaSyDO0y2NoC8JUfQ4-HHOMTi4Y-HdybgfoVk',
+  mapsApiKey: 'AIzaSyDa4UfBq4fjQ8499Efw6wuZbmvLaiFaBKE',
+
+  // ── Supabase Configuration ────────────────────────────────────
+  supabase: {
+    url: 'https://yduhtnmktudiyjjftjnw.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkdWh0bm1rdHVkaXlqamZ0am53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAzNTA2NDIsImV4cCI6MjA1NTkyNjY0Mn0.placeholder',
+  },
 };
+
