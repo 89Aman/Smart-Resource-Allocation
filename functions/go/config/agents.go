@@ -12,8 +12,7 @@ const GeminiProject = "sahaay-26007"
 // us-central1 is the primary region for Gemini publisher models in Vertex AI.
 const GeminiLocation = "us-central1"
 // GeminiModel is the Vertex AI publisher model ID for Gemini.
-// Use "gemini-2.0-flash" (no version suffix) for the latest stable flash model.
-const GeminiModel = "gemini-2.0-flash"
+const GeminiModel = "gemini-2.0-flash-001"
 
 // Clerk authentication (dev instance).
 // JWKS URL serves the public keys used to verify Clerk session JWTs.
