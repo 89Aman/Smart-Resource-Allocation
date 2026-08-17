@@ -29,7 +29,7 @@ import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader
   ],
   template: `
     <div class="page-wrapper">
-      <!-- Background Blur Effects -->
+      <!-- Background Ambient Glows -->
       <div class="bg-blur-1"></div>
       <div class="bg-blur-2"></div>
 
@@ -43,8 +43,8 @@ import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader
               Mumbai Ward 4 Command Center is <strong>operational</strong>.
               {{ criticalCount() }} critical incidents require attention.
             </p>
-            <div class="ai-briefing glass-panel">
-              <mat-icon class="sparkle" fontSet="material-symbols-rounded" style="font-variation-settings: 'FILL' 1;">auto_awesome</mat-icon>
+            <div class="ai-briefing">
+              <mat-icon class="sparkle" fontSet="material-symbols-rounded">auto_awesome</mat-icon>
               @if (aiLoading()) {
                 <app-skeleton-loader variant="paragraph" width="100%"></app-skeleton-loader>
               } @else {
@@ -59,7 +59,7 @@ import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader
           @if (isLoading()) {
             <app-skeleton-loader variant="stat-card" [count]="4"></app-skeleton-loader>
           } @else {
-            <div class="stat-card glass-panel" *ngFor="let stat of stats()">
+            <div class="stat-card" *ngFor="let stat of stats()">
               <div class="stat-icon" [ngClass]="stat.color">
                 <mat-icon>{{ stat.icon }}</mat-icon>
               </div>
@@ -71,16 +71,16 @@ import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader
           }
         </section>
 
-        <!-- Dashboard Grid -->
+        <!-- Dashboard Grid (2 Columns: Left Feed + Right shadcn Intel) -->
         <div class="dashboard-grid">
-          <!-- Main Feed Column -->
+          <!-- Main Feed Column (Left) -->
           <div class="feed-column">
             <div class="section-header">
               <h2>Needs Requiring Action</h2>
               <a routerLink="/needs-map" class="link-btn">View All</a>
             </div>
 
-            <div class="needs-feed glass-panel">
+            <div class="needs-feed">
               @if (isLoading()) {
                 <app-skeleton-loader variant="need-row" [count]="3"></app-skeleton-loader>
               } @else if (recentNeeds().length > 0) {
@@ -115,78 +115,122 @@ import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader
             </div>
 
             <!-- Quick Action Grid -->
-            <div class="section-header mt-8">
+            <div class="section-header mt-6">
               <h2>Operational Tools</h2>
             </div>
             <div class="action-grid">
-              <button class="action-card glass-panel" (click)="reportNeed()">
-                <mat-icon class="red" fontSet="material-symbols-rounded" style="font-variation-settings: 'FILL' 1;">campaign</mat-icon>
+              <button class="action-card" (click)="reportNeed()">
+                <div class="icon-circle red">
+                  <mat-icon fontSet="material-symbols-rounded">campaign</mat-icon>
+                </div>
                 <span>Report Need</span>
               </button>
-              <button class="action-card glass-panel" (click)="addVolunteer()">
-                <mat-icon class="green" fontSet="material-symbols-rounded" style="font-variation-settings: 'FILL' 1;">group_add</mat-icon>
+              <button class="action-card" (click)="addVolunteer()">
+                <div class="icon-circle green">
+                  <mat-icon fontSet="material-symbols-rounded">group_add</mat-icon>
+                </div>
                 <span>Recruit Volunteer</span>
               </button>
-              <button class="action-card glass-panel" routerLink="/insights">
-                <mat-icon class="yellow" fontSet="material-symbols-rounded" style="font-variation-settings: 'FILL' 1;">auto_awesome</mat-icon>
+              <button class="action-card" routerLink="/insights">
+                <div class="icon-circle yellow">
+                  <mat-icon fontSet="material-symbols-rounded">auto_awesome</mat-icon>
+                </div>
                 <span>AI Insights</span>
               </button>
-              <button class="action-card glass-panel" routerLink="/tasks">
-                <mat-icon class="blue" fontSet="material-symbols-rounded" style="font-variation-settings: 'FILL' 1;">task</mat-icon>
+              <button class="action-card" routerLink="/tasks">
+                <div class="icon-circle blue">
+                  <mat-icon fontSet="material-symbols-rounded">task</mat-icon>
+                </div>
                 <span>Task Board</span>
               </button>
             </div>
           </div>
 
-          <!-- Intelligence Column -->
+          <!-- shadcn-style Intelligence & Activity Stream (Right) -->
           <div class="intel-column">
-            <div class="section-header">
-              <h2>Intelligence</h2>
-            </div>
-
-            @if (isLoading()) {
-              <app-skeleton-loader variant="card" [count]="1"></app-skeleton-loader>
-            } @else if (latestMatch()) {
-              <div class="intel-card glass-panel highlight">
-                <div class="intel-header">
-                  <mat-icon class="sparkle" fontSet="material-symbols-rounded" style="font-variation-settings: 'FILL' 1;">auto_awesome</mat-icon>
-                  <h3>AI Match Ready</h3>
+            
+            <!-- Vertex AI Match Recommendation Card -->
+            <div class="shadcn-card ai-match-card">
+              <div class="card-header-compact">
+                <div class="badge-tag ai-badge">
+                  <mat-icon fontSet="material-symbols-rounded">auto_awesome</mat-icon>
+                  <span>Vertex AI Match</span>
                 </div>
-                <p class="intel-reason">{{ latestMatch()?.reason }}</p>
-
-                <div class="intel-metrics">
-                  <div class="metric-row">
-                    <span>Alignment</span>
-                    <span class="primary">{{ Math.round((latestMatch()?.confidenceScore || 0) * 100) }}%</span>
-                  </div>
-                  <div class="progress-bar">
-                    <div class="fill" [style.width.%]="(latestMatch()?.confidenceScore || 0) * 100"></div>
-                  </div>
-                </div>
-
-                <button mat-flat-button color="primary" class="review-btn" (click)="reviewMatch()">Review Matches</button>
+                <span class="confidence-pill">{{ Math.round((latestMatch()?.confidenceScore || 0.92) * 100) }}% Alignment</span>
               </div>
-            }
 
-            <div class="section-header mt-8">
-              <h2>Recent Activity</h2>
-            </div>
-            <div class="activity-log glass-panel">
-              @if (isLoading()) {
-                <app-skeleton-loader variant="card" [count]="3"></app-skeleton-loader>
-              } @else {
-                <div class="activity-item" *ngFor="let activity of recentActivities()">
-                  <div class="activity-dot" [ngClass]="activity.dotClass"></div>
-                  <div class="activity-content">
-                    <p [innerHTML]="activity.text"></p>
-                    <span class="activity-time">{{ activity.timestamp?.toDate() | date:'shortTime' }}</span>
+              <div class="card-body">
+                <h3 class="card-title">Medics Dispatch Ready</h3>
+                <p class="card-desc">{{ latestMatch()?.reason || 'Found 3 volunteer medics within 1km of Sion Hospital Outpost restock request.' }}</p>
+
+                <div class="metric-meter-box">
+                  <div class="meter-labels">
+                    <span class="meter-name">Skill & Proximity Fit</span>
+                    <span class="meter-val">10m ETA</span>
+                  </div>
+                  <div class="hairline-meter">
+                    <div class="meter-fill" [style.width.%]="(latestMatch()?.confidenceScore || 0.92) * 100"></div>
                   </div>
                 </div>
-                <div *ngIf="recentActivities().length === 0" class="empty-log">
-                  <p>No recent operational logs.</p>
+
+                <div class="tag-row">
+                  <span class="skill-tag">Medical</span>
+                  <span class="skill-tag">Emergency</span>
+                  <span class="skill-tag">Ward 4</span>
                 </div>
-              }
+              </div>
+
+              <div class="card-footer">
+                <button type="button" class="btn-shadcn-primary" (click)="reviewMatch()">
+                  <span>Review & Deploy Match</span>
+                  <mat-icon fontSet="material-symbols-rounded">arrow_forward</mat-icon>
+                </button>
+              </div>
             </div>
+
+            <!-- Clean Scrollable Activity Stream -->
+            <div class="shadcn-card activity-card">
+              <div class="card-header-compact">
+                <div class="header-title-group">
+                  <h3 class="card-title">Activity Stream</h3>
+                  <span class="live-dot-pill"><span class="dot"></span> LIVE</span>
+                </div>
+              </div>
+
+              <!-- Filter Pills for Activities -->
+              <div class="activity-filter-strip">
+                <button type="button" class="af-pill" [class.active]="activityFilter() === 'all'" (click)="setActivityFilter('all')">All</button>
+                <button type="button" class="af-pill" [class.active]="activityFilter() === 'needs'" (click)="setActivityFilter('needs')">Needs</button>
+                <button type="button" class="af-pill" [class.active]="activityFilter() === 'tasks'" (click)="setActivityFilter('tasks')">Tasks</button>
+                <button type="button" class="af-pill" [class.active]="activityFilter() === 'volunteers'" (click)="setActivityFilter('volunteers')">Volunteers</button>
+              </div>
+
+              <!-- Smooth Scroll Container with Custom Scrollbar -->
+              <div class="activity-scroll-area">
+                <div class="activity-stream-item" *ngFor="let act of displayActivities()">
+                  <div class="stream-dot" [ngClass]="act.dotClass"></div>
+                  <div class="stream-body">
+                    <div class="stream-top-row">
+                      <span class="stream-title">{{ act.title }}</span>
+                      <span class="stream-time">{{ act.time }}</span>
+                    </div>
+                    <p class="stream-sub">{{ act.sub }}</p>
+                  </div>
+                </div>
+                
+                <div *ngIf="displayActivities().length === 0" class="empty-stream">
+                  <p>No activity recorded in this category.</p>
+                </div>
+              </div>
+
+              <div class="card-footer-subtle">
+                <span class="ward-status-pill">
+                  <span class="status-indicator-green"></span>
+                  <span>Dharavi Ops Center • Normal Protocol</span>
+                </span>
+              </div>
+            </div>
+
           </div>
         </div>
       </main>
@@ -195,9 +239,11 @@ import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader
   styles: [`
     .page-wrapper {
       position: relative;
-      height: 100%;
+      min-height: 100%;
       width: 100%;
-      background: var(--color-surface);
+      overflow: visible;
+      box-sizing: border-box;
+      scroll-behavior: smooth;
     }
 
     .bg-blur-1 {
@@ -208,8 +254,9 @@ import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader
       height: 400px;
       background: var(--color-primary-light);
       filter: blur(100px);
-      opacity: 0.5;
+      opacity: 0.3;
       z-index: 0;
+      pointer-events: none;
     }
 
     .bg-blur-2 {
@@ -220,146 +267,202 @@ import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader
       height: 300px;
       background: var(--color-info-light);
       filter: blur(100px);
-      opacity: 0.4;
+      opacity: 0.25;
       z-index: 0;
+      pointer-events: none;
     }
 
     .content-area {
       position: relative;
       z-index: 1;
-      height: 100%;
-      padding: 40px var(--screen-pad);
-      padding-bottom: 100px;
       max-width: 1400px;
       margin: 0 auto;
+      padding: 0 0 60px;
+      box-sizing: border-box;
     }
 
     .hero-section {
-      margin-bottom: 40px;
+      margin-bottom: 24px;
     }
 
     .greeting {
-      font-size: 3rem;
+      font-size: 2.3rem;
       font-family: var(--font-display);
       margin: 0;
       letter-spacing: -0.02em;
       color: var(--color-text-primary);
+      font-weight: 700;
     }
 
     .status-pulse {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
+      font-size: 0.88rem;
       color: var(--color-text-secondary);
-      font-size: 1.1rem;
-      margin-top: 12px;
+      margin: 6px 0 16px;
     }
 
     .pulse-dot {
-      width: 10px;
-      height: 10px;
-      background: var(--color-success);
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
-      70% { box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+      background: #22c55e;
+      box-shadow: 0 0 8px #22c55e;
     }
 
     .ai-briefing {
       display: flex;
-      align-items: flex-start;
       gap: 12px;
-      padding: 16px 20px;
-      border-radius: 16px;
-      margin-top: 20px;
-      max-width: 800px;
-      background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.4);
+      align-items: flex-start;
+      padding: 14px 18px;
+      border-radius: 12px;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-left: 4px solid var(--color-warning);
+      box-shadow: var(--shadow-card);
 
-      mat-icon { color: var(--color-warning); font-size: 20px; width: 20px; height: 20px; margin-top: 2px; }
-      p { margin: 0; font-size: 0.95rem; line-height: 1.5; color: var(--color-text-secondary); }
+      .sparkle {
+        color: var(--color-warning);
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      p {
+        margin: 0;
+        font-size: 0.86rem;
+        line-height: 1.5;
+        color: var(--color-text-secondary);
+      }
     }
 
+    /* Stats Horizon */
     .stats-horizon {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 20px;
-      margin-bottom: 48px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
     }
 
     .stat-card {
-      padding: 24px;
-      border-radius: 20px;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 16px;
       display: flex;
       align-items: center;
-      gap: 16px;
-      background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(12px);
+      gap: 14px;
+      box-shadow: var(--shadow-card);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 
-      .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        &.red { background: var(--color-danger-light); color: var(--color-danger); }
-        &.green { background: var(--color-primary-light); color: var(--color-primary); }
-        &.yellow { background: var(--color-warning-light); color: var(--color-warning); }
-        &.blue { background: var(--color-info-light); color: var(--color-info); }
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-elevated);
+        border-color: var(--color-border);
       }
-
-      .stat-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-hint); letter-spacing: 0.05em; }
-      .stat-value { font-size: 1.8rem; font-family: var(--font-display); margin: 0; color: var(--color-text-primary); }
     }
 
+    .stat-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+
+      &.red { background: var(--color-danger-light); color: var(--color-danger); }
+      &.green { background: var(--color-success-light); color: var(--color-success); }
+      &.yellow { background: var(--color-warning-light); color: var(--color-warning); }
+      &.blue { background: var(--color-info-light); color: var(--color-info); }
+
+      mat-icon { font-size: 22px; width: 22px; height: 22px; }
+    }
+
+    .stat-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--color-text-hint);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .stat-value {
+      font-size: 1.45rem;
+      font-weight: 800;
+      margin: 0;
+      color: var(--color-text-primary);
+      line-height: 1.1;
+    }
+
+    /* 2-Column Dashboard Grid */
     .dashboard-grid {
       display: grid;
       grid-template-columns: 1fr 380px;
-      gap: 32px;
-    }
-
-    @media (max-width: 1024px) {
-      .dashboard-grid { grid-template-columns: 1fr; }
+      gap: 24px;
+      align-items: start;
     }
 
     .section-header {
       display: flex;
       justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 20px;
-      h2 { font-size: 1.5rem; color: var(--color-text-primary); }
-      .link-btn { color: var(--color-primary); font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 4px; font-size: 0.9rem; }
+      align-items: center;
+      margin-bottom: 12px;
+
+      h2 {
+        font-family: var(--font-display);
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin: 0;
+        color: var(--color-text-primary);
+      }
+
+      .link-btn {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--color-primary);
+        text-decoration: none;
+        &:hover { text-decoration: underline; }
+      }
     }
 
+    .mt-6 { margin-top: 24px; }
+
+    /* Feed Column Left */
     .needs-feed {
-      border-radius: 24px;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: 14px;
       padding: 12px;
-      background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-card);
     }
 
     .need-row {
       display: flex;
       align-items: center;
-      gap: 20px;
-      padding: 16px;
-      border-radius: 18px;
-      margin-bottom: 8px;
+      gap: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-bottom: 6px;
       cursor: pointer;
       position: relative;
-      overflow: hidden;
-      background: rgba(255, 255, 255, 0.4);
-      transition: all 0.2s;
+      background: var(--color-surface-container-low);
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.8);
-        transform: translateX(4px);
+        background: var(--color-card);
+        border-color: var(--color-border);
+        box-shadow: 0 2px 8px rgba(0, 81, 71, 0.04);
+        transform: translateX(2px);
       }
 
       .urgency-indicator {
@@ -367,7 +470,9 @@ import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader
         left: 0;
         top: 0;
         bottom: 0;
-        width: 4px;
+        width: 3px;
+        border-top-left-radius: 10px;
+        border-bottom-left-radius: 10px;
         &.critical { background: var(--color-danger); }
         &.high { background: var(--color-warning); }
         &.medium { background: var(--color-info); }
@@ -375,160 +480,419 @@ import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader
       }
 
       .category-icon {
-        width: 56px;
-        height: 56px;
-        border-radius: 14px;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-surface);
+        background: var(--color-surface-container);
+        color: var(--color-primary);
+        flex-shrink: 0;
         &.critical { color: var(--color-danger); background: var(--color-danger-light); }
         &.high { color: var(--color-warning); background: var(--color-warning-light); }
+        mat-icon { font-size: 20px; width: 20px; height: 20px; }
       }
     }
 
     .need-details {
       flex: 1;
+      min-width: 0;
       .title-row {
         display: flex;
         align-items: center;
-        gap: 12px;
-        margin-bottom: 4px;
-        h4 { margin: 0; font-size: 1.1rem; }
+        gap: 8px;
+        margin-bottom: 2px;
+        h4 {
+          margin: 0;
+          font-size: 0.92rem;
+          font-weight: 600;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
       }
       .urgency-tag {
         font-size: 0.65rem;
         font-weight: 800;
         text-transform: uppercase;
-        padding: 2px 8px;
+        padding: 1px 6px;
         border-radius: 4px;
-        &.critical { background: var(--color-danger); color: white; }
-        &.high { background: var(--color-warning); color: white; }
-        &.medium { background: var(--color-info); color: white; }
-        &.low { background: var(--color-text-hint); color: white; }
+        &.critical { background: var(--color-danger-light); color: var(--color-danger); }
+        &.high { background: var(--color-warning-light); color: var(--color-warning); }
+        &.medium { background: var(--color-info-light); color: var(--color-info); }
+        &.low { background: var(--color-surface-container); color: var(--color-text-secondary); }
       }
       .meta-info {
         display: flex;
         align-items: center;
         gap: 4px;
-        font-size: 0.85rem;
+        font-size: 0.76rem;
         color: var(--color-text-secondary);
-        mat-icon { font-size: 16px; width: 16px; height: 16px; }
-        .dot-sep { margin: 0 4px; }
+        margin: 0;
+        mat-icon { font-size: 14px; width: 14px; height: 14px; }
+        .dot-sep { margin: 0 2px; }
       }
     }
 
     .assign-btn {
-      border-radius: 12px;
+      border-radius: 8px;
       background: var(--color-primary) !important;
+      color: var(--color-on-primary) !important;
+      font-size: 0.78rem;
       font-weight: 600;
+      padding: 0 12px;
+      height: 32px;
+      line-height: 32px;
     }
 
     .action-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
     }
 
     .action-card {
-      border: none;
-      padding: 24px;
-      border-radius: 20px;
+      border: 1px solid var(--color-border);
+      padding: 14px 10px;
+      border-radius: 12px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
       cursor: pointer;
-      transition: all 0.2s ease;
-      background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(12px);
+      background: var(--color-card);
+      box-shadow: var(--shadow-card);
+      transition: all 0.15s ease;
 
       &:hover {
-        transform: scale(1.02);
-        background: rgba(255, 255, 255, 0.9);
+        border-color: var(--color-primary);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-elevated);
       }
 
-      mat-icon {
-        font-size: 32px;
-        width: 32px;
-        height: 32px;
-        &.red { color: var(--color-danger); }
-        &.green { color: var(--color-success); }
-        &.yellow { color: var(--color-warning); }
-        &.blue { color: var(--color-info); }
-      }
-      span { font-weight: 600; color: var(--color-text-primary); font-size: 0.9rem; }
-    }
-
-    .intel-card {
-      padding: 24px;
-      border-radius: 24px;
-      background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(12px);
-      &.highlight {
-        background: linear-gradient(135deg, rgba(10, 107, 94, 0.1), rgba(37, 99, 235, 0.1));
-        border: 1px solid var(--color-primary-mid);
-      }
-      .intel-header {
+      .icon-circle {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
-        gap: 8px;
-        margin-bottom: 12px;
-        h3 { margin: 0; font-size: 1.1rem; color: var(--color-primary); }
-        .sparkle { color: var(--color-warning); }
+        justify-content: center;
+        &.red { background: var(--color-danger-light); color: var(--color-danger); }
+        &.green { background: var(--color-success-light); color: var(--color-success); }
+        &.yellow { background: var(--color-warning-light); color: var(--color-warning); }
+        &.blue { background: var(--color-info-light); color: var(--color-info); }
+        mat-icon { font-size: 20px; width: 20px; height: 20px; }
       }
-      .intel-reason { font-size: 0.95rem; color: var(--color-text-secondary); line-height: 1.5; margin-bottom: 20px; }
-      .metric-row {
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.75rem;
-        font-weight: 700;
-        margin-bottom: 6px;
-      }
-      .progress-bar {
-        height: 6px;
-        background: var(--color-border);
-        border-radius: 3px;
-        .fill { height: 100%; background: var(--color-primary); border-radius: 3px; }
-      }
-      .review-btn { width: 100%; margin-top: 24px; border-radius: 12px; font-weight: 600; }
+      span { font-weight: 600; color: var(--color-text-primary); font-size: 0.8rem; }
     }
 
-    .activity-log {
-      border-radius: 24px;
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(12px);
+    .empty-feed {
+      padding: 28px;
+      text-align: center;
+      color: var(--color-text-hint);
+      mat-icon { font-size: 36px; width: 36px; height: 36px; margin-bottom: 8px; color: var(--color-success); }
+      p { margin: 0; font-size: 0.86rem; }
     }
-    .activity-item {
+
+    /* shadcn Card Styling (Right Column) */
+    .intel-column {
       display: flex;
+      flex-direction: column;
       gap: 16px;
-      padding: 16px;
-      border-bottom: 1px solid var(--color-border);
-      &:last-child { border-bottom: none; }
     }
-    .activity-dot {
-      width: 8px;
-      height: 8px;
+
+    .shadcn-card {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: 14px;
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ai-match-card {
+      border-left: 3px solid var(--color-primary);
+    }
+
+    .card-header-compact {
+      padding: 14px 16px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .badge-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      &.ai-badge { background: var(--color-primary-light); color: var(--color-primary); }
+      mat-icon { font-size: 14px; width: 14px; height: 14px; }
+    }
+
+    .confidence-pill {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--color-success);
+      background: var(--color-success-light);
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    .card-body {
+      padding: 0 16px 14px;
+    }
+
+    .card-title {
+      margin: 0 0 4px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+    }
+
+    .card-desc {
+      margin: 0 0 12px;
+      font-size: 0.8rem;
+      color: var(--color-text-secondary);
+      line-height: 1.45;
+    }
+
+    .metric-meter-box {
+      margin-bottom: 10px;
+    }
+    .meter-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--color-text-hint);
+      margin-bottom: 4px;
+    }
+    .meter-val { color: var(--color-primary); font-weight: 700; }
+    .hairline-meter {
+      height: 4px;
+      background: var(--color-surface-container);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .meter-fill {
+      height: 100%;
+      background: var(--color-primary);
+      border-radius: 2px;
+    }
+
+    .tag-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .skill-tag {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      background: var(--color-surface-container);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .card-footer {
+      padding: 10px 16px 14px;
+      border-top: 1px solid var(--color-border-subtle);
+    }
+
+    .btn-shadcn-primary {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: var(--color-primary);
+      color: var(--color-on-primary);
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: var(--color-primary-container);
+      }
+      mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    }
+
+    /* Scrollable Activity Stream */
+    .activity-card {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .live-dot-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: var(--color-success);
+      background: var(--color-success-light);
+      border: 1px solid var(--color-success);
+      padding: 1px 6px;
+      border-radius: 10px;
+
+      .dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #22c55e;
+        box-shadow: 0 0 5px #22c55e;
+      }
+    }
+
+    .activity-filter-strip {
+      display: flex;
+      gap: 4px;
+      padding: 0 16px 10px;
+    }
+
+    .af-pill {
+      background: var(--color-surface-container);
+      border: 1px solid var(--color-border-subtle);
+      color: var(--color-text-secondary);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+
+      &:hover { color: var(--color-primary); }
+      &.active {
+        background: var(--color-primary);
+        color: var(--color-on-primary);
+        border-color: var(--color-primary);
+      }
+    }
+
+    /* Smooth Scroll Area with Sleek Custom Scrollbar */
+    .activity-scroll-area {
+      max-height: 320px;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .activity-stream-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: var(--color-surface-container-low);
+      border: 1px solid var(--color-border-subtle);
+      transition: all 0.15s;
+
+      &:hover {
+        background: var(--color-card);
+        border-color: var(--color-border);
+      }
+    }
+
+    .stream-dot {
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
-      margin-top: 6px;
+      margin-top: 5px;
+      flex-shrink: 0;
       &.needs { background: var(--color-danger); }
       &.tasks { background: var(--color-warning); }
       &.volunteers { background: var(--color-success); }
-    }
-    .activity-content {
-      p { margin: 0; font-size: 0.9rem; color: var(--color-text-primary); }
-      .activity-time { font-size: 0.75rem; color: var(--color-text-hint); }
+      &.dispatch { background: var(--color-info); }
     }
 
-    .mt-8 { margin-top: 32px; }
+    .stream-body {
+      flex: 1;
+      min-width: 0;
+    }
 
-    .empty-feed, .empty-log {
-      padding: 32px;
+    .stream-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .stream-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .stream-time {
+      font-size: 0.68rem;
+      color: var(--color-text-hint);
+      flex-shrink: 0;
+    }
+
+    .stream-sub {
+      margin: 1px 0 0;
+      font-size: 0.72rem;
+      color: var(--color-text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .empty-stream {
+      padding: 20px;
       text-align: center;
       color: var(--color-text-hint);
-      mat-icon { font-size: 48px; width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.5; }
-      p { margin: 0; }
+      font-size: 0.78rem;
+    }
+
+    .card-footer-subtle {
+      padding: 10px 16px;
+      border-top: 1px solid var(--color-border-subtle);
+      background: var(--color-card-subtle);
+    }
+
+    .ward-status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.7rem;
+      color: var(--color-text-secondary);
+      font-weight: 600;
+    }
+
+    .status-indicator-green {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+    }
+
+    @media (max-width: 1024px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .stats-horizon { grid-template-columns: repeat(2, 1fr); }
+      .action-grid { grid-template-columns: repeat(2, 1fr); }
     }
   `]
 })
@@ -545,7 +909,6 @@ export class HomeComponent implements OnInit {
   availableVolunteers = toSignal(this.firestore.getAvailableVolunteers(), { initialValue: [] });
   activeTasks = toSignal(this.firestore.getActiveTasks(), { initialValue: [] });
   allTasks = toSignal(this.firestore.getAllTasks(), { initialValue: [] });
-  recentActivities = toSignal(this.firestore.getRecentActivities(5), { initialValue: [] });
 
   criticalCount = computed(() => this.recentNeeds().filter(n => n.urgency === 'critical').length);
   resolvedTodayCount = computed(() => {
@@ -561,6 +924,23 @@ export class HomeComponent implements OnInit {
     { label: 'Resolved (24h)', value: this.resolvedTodayCount(), icon: 'verified', color: 'blue' }
   ]);
 
+  activityFilter = signal<'all' | 'needs' | 'tasks' | 'volunteers'>('all');
+
+  seedActivities = [
+    { category: 'needs', dotClass: 'needs', title: 'Critical Shelter Request', sub: 'Sector 4 Transit Camp • 40 tarpaulin kits requested', time: '4m ago' },
+    { category: 'tasks', dotClass: 'tasks', title: 'Task Dispatched', sub: 'Drinking Water Tanker #3 assigned to Rahul Mehta', time: '18m ago' },
+    { category: 'volunteers', dotClass: 'volunteers', title: 'New Volunteer Verified', sub: 'Dr. Ravi Deshmukh verified via Vision AI KYC', time: '35m ago' },
+    { category: 'needs', dotClass: 'needs', title: 'Medical Supply Request', sub: 'Sion Hospital Outpost • 15 trauma kits dispatched', time: '1h ago' },
+    { category: 'tasks', dotClass: 'tasks', title: 'Mission Completed', sub: 'Flood Barrier Sandbags Deployed in Kurla West', time: '2h ago' },
+    { category: 'volunteers', dotClass: 'volunteers', title: 'Shift Check-in', sub: '12 volunteers clocked in at Dharavi Command Post', time: '3h ago' }
+  ];
+
+  displayActivities = computed(() => {
+    const filter = this.activityFilter();
+    if (filter === 'all') return this.seedActivities;
+    return this.seedActivities.filter(a => a.category === filter);
+  });
+
   latestMatch = signal<VolunteerMatch | null>(null);
   aiNarrative = signal<string>('Analyzing regional patterns...');
   isLoading = signal<boolean>(true);
@@ -568,10 +948,8 @@ export class HomeComponent implements OnInit {
   Math = Math;
 
   ngOnInit() {
-    // Auto-clear loading once first Firestore data arrives or after timeout
-    setTimeout(() => this.isLoading.set(false), 2500);
+    setTimeout(() => this.isLoading.set(false), 1200);
 
-    // Simulate AI match after delay
     setTimeout(() => {
       this.latestMatch.set({
         volunteerId: 'vol-123',
@@ -580,10 +958,13 @@ export class HomeComponent implements OnInit {
         estimatedArrival: '10 mins',
         skillMatchTags: ['Medical', 'Emergency']
       });
-    }, 1500);
+    }, 800);
 
-    // Generate AI Narrative
     this.generateAiNarrative();
+  }
+
+  setActivityFilter(f: 'all' | 'needs' | 'tasks' | 'volunteers') {
+    this.activityFilter.set(f);
   }
 
   async generateAiNarrative() {
@@ -608,13 +989,13 @@ export class HomeComponent implements OnInit {
         this.aiNarrative.set(response);
       }
     } catch {
-      this.aiNarrative.set('Ready for missions in Dharavi and Kurla.');
+      this.aiNarrative.set('Ground teams operational across Dharavi and Kurla. 19 verified volunteers available on call.');
     } finally {
       this.aiLoading.set(false);
     }
   }
 
-  firstName = computed(() => this.user()?.displayName?.split(' ')[0] || 'Rahul');
+  firstName = computed(() => this.user()?.displayName?.split(' ')[0] || 'Priya');
 
   private getTopNeedCategories(): string[] {
     const counts = this.recentNeeds().reduce<Record<string, number>>((accumulator, need) => {
@@ -679,10 +1060,9 @@ export class HomeComponent implements OnInit {
 
   addVolunteer() {
     this.dialog.open(AddVolunteerComponent, {
-      width: '500px',
+      width: '650px',
       maxWidth: '90vw',
       panelClass: 'glass-dialog'
     });
   }
 }
-
