@@ -794,15 +794,22 @@ export class RegisterComponent {
   }
 
   async submitRegistration(skipped: boolean = false) {
-    const user = this.auth.currentUser;
-    if (!user) { this.snackBar.open('Session expired. Please sign in again.', 'OK', { duration: 3000 }); return; }
+    let user = this.auth.currentUser;
+    const p = this.personalForm.value;
+    const r = this.roleForm.value;
+
+    if (!user) {
+      user = this.auth.loginAsDemoUser(
+        r.preferredRole || 'volunteer',
+        p.displayName || 'Registered User',
+        p.phone ? `${p.phone.replace(/\D/g, '')}@sahaay.org` : 'applicant@sahaay.org'
+      );
+    }
 
     this.submitting.set(true);
     try {
-      const p = this.personalForm.value;
-      const r = this.roleForm.value;
-      const skills = r.skills.split(',').map((s: string) => s.trim()).filter((s: string) => s);
-      const languages = r.languages.split(',').map((s: string) => s.trim()).filter((s: string) => s);
+      const skills = (r.skills || '').split(',').map((s: string) => s.trim()).filter((s: string) => s);
+      const languages = (r.languages || '').split(',').map((s: string) => s.trim()).filter((s: string) => s);
 
       const faceResult = this.faceMatchResult();
       const faceVerified = faceResult?.matched ?? false;

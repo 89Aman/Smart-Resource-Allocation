@@ -49,6 +49,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'view_insights_team',
     'view_insights_ngo',
     'view_registry',
+    'manage_registry',
     'view_inventory',
     'request_inventory',
     'manage_inventory',
