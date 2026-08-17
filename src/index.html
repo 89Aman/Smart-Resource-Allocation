@@ -6,9 +6,27 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <!-- Immediate Theme Initializer to prevent flash -->
+  <script>
+    (function() {
+      try {
+        var theme = localStorage.getItem('sahaay-theme');
+        if (!theme) {
+          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark', 'dark-theme');
+          document.addEventListener('DOMContentLoaded', function() {
+            document.body.classList.add('dark', 'dark-theme');
+          });
+        }
+      } catch (e) {}
+    })();
+  </script>
   
   <!-- Stitch Design Tokens: Fonts & Icons -->
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
 
   <style>
