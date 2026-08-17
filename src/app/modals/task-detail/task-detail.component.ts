@@ -30,86 +30,92 @@ import { Timestamp } from '@angular/fire/firestore';
     MatSnackBarModule,
   ],
   template: `
-    <div class="detail-container" *ngIf="task">
-      <header class="header">
+    <div class="modal-wrapper" *ngIf="task">
+      <!-- Modal Header -->
+      <header class="modal-header">
         <div class="header-main">
-          <span class="id">#TSK-{{ task.id.slice(0, 4).toUpperCase() }}</span>
-          <h2 mat-dialog-title>{{ task.title }}</h2>
+          <div class="task-id-badge">
+            <mat-icon fontSet="material-symbols-rounded">tag</mat-icon>
+            <span>TSK-{{ task.id.slice(0, 5).toUpperCase() }}</span>
+          </div>
+          <h2 class="modal-title">{{ task.title }}</h2>
         </div>
-        <button mat-icon-button (click)="close()" class="close-btn">
-          <mat-icon>close</mat-icon>
+        <button type="button" class="close-btn" (click)="close()">
+          <mat-icon fontSet="material-symbols-rounded">close</mat-icon>
         </button>
       </header>
 
-      <mat-dialog-content>
-        <div class="badges">
-          <span class="badge priority" [ngClass]="task.priority">{{ task.priority }}</span>
-          <span class="badge category">{{ task.category }}</span>
-          <span class="badge status" [ngClass]="task.status">{{ task.status }}</span>
+      <mat-dialog-content class="modal-body">
+        <!-- Status & Priority Badges -->
+        <div class="badges-row">
+          <span class="badge priority" [ngClass]="task.priority">
+            <mat-icon fontSet="material-symbols-rounded">flag</mat-icon>
+            {{ task.priority }} Priority
+          </span>
+          <span class="badge category">
+            <mat-icon fontSet="material-symbols-rounded">category</mat-icon>
+            {{ task.category }}
+          </span>
+          <span class="badge status" [ngClass]="task.status">
+            <mat-icon fontSet="material-symbols-rounded">{{ task.status === 'completed' ? 'check_circle' : 'pending' }}</mat-icon>
+            {{ task.status }}
+          </span>
         </div>
 
+        <!-- Description -->
         <section class="info-section">
-          <h3>Description</h3>
-          <p class="description">{{ task.description }}</p>
+          <h3 class="section-label">Mission Scope & Objectives</h3>
+          <p class="description-text">{{ task.description }}</p>
         </section>
 
+        <!-- Location -->
         <section class="info-section">
-          <h3>Location</h3>
-          <div class="location">
-            <mat-icon>location_on</mat-icon>
+          <h3 class="section-label">Deployment Location</h3>
+          <div class="location-box">
+            <mat-icon fontSet="material-symbols-rounded">location_on</mat-icon>
             <span>{{ task.locationName }}</span>
           </div>
         </section>
 
+        <!-- Progress Bar -->
         <section class="info-section">
-          <h3>Progress ({{ task.progress }}%)</h3>
-          <mat-progress-bar mode="determinate" [value]="task.progress" [color]="getProgressColor()"></mat-progress-bar>
+          <div class="progress-header">
+            <h3 class="section-label">Completion Progress</h3>
+            <span class="progress-val">{{ task.progress }}%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" [style.width.%]="task.progress" [ngClass]="task.status"></div>
+          </div>
         </section>
 
+        <!-- Deployed Team -->
         <section class="info-section" *ngIf="canAssign()">
-          <h3>Deployed Task Force</h3>
+          <h3 class="section-label">Active Team on Ground</h3>
           <div class="volunteers-list">
             <div *ngFor="let a of acceptedAssignments()" class="volunteer-pill">
-              <mat-icon>person</mat-icon>
+              <mat-icon fontSet="material-symbols-rounded">verified_user</mat-icon>
               <span>{{ a.volunteerId }}</span>
             </div>
             <div *ngIf="acceptedAssignments().length === 0" class="empty-state">
-              No volunteers accepted yet.
+              <mat-icon fontSet="material-symbols-rounded">group_off</mat-icon>
+              <span>No volunteers deployed yet. Use AI Match below to assign.</span>
             </div>
           </div>
         </section>
 
-        <section class="info-section" *ngIf="myAssignment()">
-          <h3>Your Request</h3>
-          <div class="request-row">
-            <span class="badge status" [ngClass]="myAssignment()!.status">{{ myAssignment()!.status }}</span>
-
-            <div class="request-actions" *ngIf="myAssignment()!.status === 'pending'">
-              <button mat-stroked-button color="primary" (click)="respond('accepted')" [disabled]="actionLoading()">Accept</button>
-              <button mat-stroked-button color="warn" (click)="respond('declined')" [disabled]="actionLoading()">Decline</button>
-            </div>
-          </div>
-        </section>
-
+        <!-- Contact Section -->
         <section class="info-section" *ngIf="canSeeContacts()">
-          <h3>Contact</h3>
-
+          <h3 class="section-label">Emergency Coordinator Contact</h3>
           <div class="contact-card" *ngIf="taskContact() as c; else missingContact">
             <div class="contact-block">
-              <div class="contact-title">Primary</div>
               <div class="contact-name">{{ c.primary.name }}</div>
               <div class="contact-links">
-                <a *ngIf="c.primary.phone" [href]="'tel:' + c.primary.phone" class="contact-link">Call</a>
-                <a *ngIf="c.primary.whatsapp" [href]="whatsAppLink(c.primary.whatsapp)" target="_blank" rel="noopener" class="contact-link">WhatsApp</a>
-              </div>
-            </div>
-
-            <div class="contact-block" *ngIf="c.fallback">
-              <div class="contact-title">NGO Fallback</div>
-              <div class="contact-name">{{ c.fallback.name }}</div>
-              <div class="contact-links">
-                <a *ngIf="c.fallback.phone" [href]="'tel:' + c.fallback.phone" class="contact-link">Call</a>
-                <a *ngIf="c.fallback.whatsapp" [href]="whatsAppLink(c.fallback.whatsapp)" target="_blank" rel="noopener" class="contact-link">WhatsApp</a>
+                <a *ngIf="c.primary.phone" [href]="'tel:' + c.primary.phone" class="contact-link call">
+                  <mat-icon fontSet="material-symbols-rounded">call</mat-icon> Call Direct
+                </a>
+                <a *ngIf="c.primary.whatsapp" [href]="whatsAppLink(c.primary.whatsapp)" target="_blank" rel="noopener" class="contact-link whatsapp">
+                  <mat-icon fontSet="material-symbols-rounded">chat</mat-icon> WhatsApp
+                </a>
               </div>
             </div>
           </div>
@@ -118,160 +124,439 @@ import { Timestamp } from '@angular/fire/firestore';
           </ng-template>
         </section>
 
+        <!-- AI Suggested Matches -->
         <section class="info-section" *ngIf="canAssign()">
-          <h3>Volunteer Requests</h3>
-          <div class="requests-list">
-            <div class="request-item" *ngFor="let a of assignments()">
-              <div class="request-meta">
-                <mat-icon>person</mat-icon>
-                <span class="request-vol">{{ a.volunteerId }}</span>
-              </div>
-              <span class="badge status" [ngClass]="a.status">{{ a.status }}</span>
-            </div>
-            <div class="empty-state" *ngIf="assignments().length === 0">No requests sent yet.</div>
+          <div class="ai-header">
+            <h3 class="section-label">Vertex AI Volunteer Matches</h3>
+            <button type="button" class="ai-match-btn" (click)="runMatch()" [disabled]="actionLoading()">
+              <mat-icon fontSet="material-symbols-rounded">{{ actionLoading() ? 'sync' : 'psychology' }}</mat-icon>
+              <span>{{ actionLoading() ? 'Matching...' : 'Run Vertex AI Match' }}</span>
+            </button>
           </div>
 
-          <div class="ai-matches" *ngIf="matches().length > 0">
-            <h4 class="subhead">AI Suggested</h4>
-            <div class="match-row" *ngFor="let m of matches()">
-              <div class="match-main">
-                <div class="match-id">{{ m.volunteerId }}</div>
-                <div class="match-reason">{{ m.reason }}</div>
+          <div class="matches-container" *ngIf="matches().length > 0">
+            <div class="match-card" *ngFor="let m of matches()">
+              <div class="match-meta">
+                <div class="match-top">
+                  <span class="vol-name">{{ m.volunteerId }}</span>
+                  <span class="match-score">Confidence: {{ (m.confidenceScore * 100).toFixed(0) }}%</span>
+                </div>
+                <p class="match-reason">{{ m.reason }}</p>
+                <div class="match-tags" *ngIf="m.skillMatchTags?.length">
+                  <span class="match-tag" *ngFor="let tag of m.skillMatchTags">{{ tag }}</span>
+                </div>
               </div>
-              <button mat-stroked-button color="primary" (click)="sendRequest(m.volunteerId)" [disabled]="actionLoading()">
-                Request
+              <button type="button" class="request-btn" (click)="sendRequest(m.volunteerId)" [disabled]="actionLoading()">
+                Deploy
               </button>
             </div>
           </div>
         </section>
       </mat-dialog-content>
 
-      <mat-dialog-actions align="end">
-        <button mat-stroked-button *ngIf="task.status === 'pending'" (click)="updateStatus('active')">
-          Start Operation
+      <!-- Modal Footer -->
+      <mat-dialog-actions class="modal-footer">
+        <button type="button" class="cancel-btn" (click)="close()">Close</button>
+        <button type="button" class="status-btn" *ngIf="task.status === 'pending'" (click)="updateStatus('active')">
+          <mat-icon fontSet="material-symbols-rounded">play_arrow</mat-icon>
+          <span>Start Operation</span>
         </button>
-        <button mat-stroked-button *ngIf="task.status === 'active'" (click)="updateStatus('completed')">
-          Complete Operation
-        </button>
-        <button mat-flat-button color="primary" class="match-btn" *ngIf="canAssign()" (click)="runMatch()" [disabled]="actionLoading()">
-          <mat-icon>smart_toy</mat-icon>
-          AI Match Volunteers
+        <button type="button" class="complete-btn" *ngIf="task.status === 'active'" (click)="updateStatus('completed')">
+          <mat-icon fontSet="material-symbols-rounded">task_alt</mat-icon>
+          <span>Mark Resolved</span>
         </button>
       </mat-dialog-actions>
     </div>
   `,
   styles: [`
-    .detail-container { padding: 12px; }
-    .header {
+    .modal-wrapper {
+      display: flex;
+      flex-direction: column;
+      background: var(--color-card);
+      min-width: 520px;
+      max-width: 620px;
+    }
+
+    .modal-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 16px;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--color-border);
     }
-    .header-main h2 { margin: 0; font-family: var(--font-display); color: var(--color-primary); }
-    .id { font-size: 12px; color: var(--color-text-hint); font-weight: 600; }
-    
-    .badges { display: flex; gap: 8px; margin-bottom: 24px; }
-    .badge {
-      font-size: 10px;
+
+    .task-id-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--color-surface-container-low);
+      color: #005147;
+      font-size: 0.72rem;
       font-weight: 700;
-      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+    }
+    .task-id-badge mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #005147;
+      line-height: 1.3;
+    }
+
+    .close-btn {
+      background: transparent;
+      border: none;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+    .close-btn:hover {
+      background: var(--color-surface-container-low);
+      color: var(--color-text-primary);
+    }
+
+    .modal-body {
+      padding: 20px 24px !important;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+
+    .badges-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: capitalize;
       padding: 4px 12px;
       border-radius: 20px;
     }
-    .priority.critical { background: var(--color-danger-light); color: var(--color-danger); }
-    .status.active { background: var(--color-primary-light); color: var(--color-primary); }
-    .status.completed { background: var(--color-success-light); color: var(--color-success); }
-    
-    .info-section { margin-bottom: 24px; }
-    .info-section h3 {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--color-text-secondary);
-      margin-bottom: 8px;
+    .badge mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
     }
-    .description { font-size: 14px; line-height: 1.6; color: var(--color-text-primary); }
-    .location { display: flex; align-items: center; gap: 8px; color: var(--color-text-secondary); }
-    
-    .volunteers-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .priority.critical { background: var(--color-danger-light); color: #dc2626; }
+    .priority.high { background: var(--color-warning-light); color: #d97706; }
+    .priority.medium { background: var(--color-info-light); color: #0284c7; }
+    .priority.low { background: var(--color-surface-container-low); color: var(--color-text-secondary); }
+    .category { background: var(--color-success-light); color: #16a34a; border: 1px solid #dcfce7; }
+    .status.active { background: var(--color-primary-light); color: #005147; }
+    .status.completed { background: var(--color-success-light); color: #16a34a; }
+    .status.pending { background: #fff7ed; color: #ea580c; }
+
+    .info-section {
+      margin-bottom: 20px;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-secondary);
+      font-weight: 700;
+      margin: 0 0 8px;
+    }
+
+    .description-text {
+      font-size: 0.88rem;
+      line-height: 1.55;
+      color: var(--color-text-primary);
+      margin: 0;
+    }
+
+    .location-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--color-surface-container-low);
+      border: 1px solid var(--color-border);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+    .location-box mat-icon {
+      color: #005147;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .progress-val {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #005147;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 8px;
+      background: var(--color-surface-container-low);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--color-primary);
+      border-radius: 10px;
+      transition: width 0.4s ease;
+    }
+    .progress-fill.completed {
+      background: #16a34a;
+    }
+
+    .volunteers-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
     .volunteer-pill {
       display: flex;
       align-items: center;
       gap: 6px;
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 13px;
+      background: var(--color-success-light);
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
     }
-    .volunteer-pill mat-icon { font-size: 16px; width: 16px; height: 16px; }
-    .empty-state { font-size: 13px; color: var(--color-text-hint); font-style: italic; }
+    .volunteer-pill mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
 
-    .request-row {
+    .empty-state {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--color-surface-container-low);
+      border: 1px dashed var(--color-border);
+      border-radius: 10px;
+      font-size: 0.82rem;
+      color: var(--color-text-secondary);
     }
-    .request-actions { display: flex; gap: 8px; }
-
-    .requests-list { display: flex; flex-direction: column; gap: 8px; }
-    .request-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 12px;
-      border: 1px solid var(--color-border);
-      border-radius: 12px;
-      background: var(--color-surface);
+    .empty-state mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
     }
-    .request-meta { display: flex; align-items: center; gap: 8px; color: var(--color-text-secondary); }
-    .request-vol { font-weight: 600; color: var(--color-text-primary); }
-
-    .ai-matches { margin-top: 12px; }
-    .subhead { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.05em; }
-    .match-row {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 10px 12px;
-      border: 1px solid var(--color-border);
-      border-radius: 12px;
-      background: var(--color-card);
-      margin-bottom: 8px;
-    }
-    .match-id { font-weight: 700; font-size: 12px; color: var(--color-text-primary); }
-    .match-reason { font-size: 12px; color: var(--color-text-secondary); line-height: 1.35; }
 
     .contact-card {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      padding: 12px;
+      background: var(--color-surface-container-low);
       border: 1px solid var(--color-border);
       border-radius: 12px;
-      background: var(--color-card);
+      padding: 14px 16px;
     }
-    .contact-title { font-size: 11px; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.05em; }
-    .contact-name { font-size: 14px; font-weight: 700; color: var(--color-text-primary); margin-top: 2px; }
-    .contact-links { display: flex; gap: 10px; margin-top: 6px; }
+    .contact-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      margin-bottom: 8px;
+    }
+    .contact-links {
+      display: flex;
+      gap: 10px;
+    }
     .contact-link {
-      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
       font-weight: 700;
       text-decoration: none;
-      color: var(--color-primary);
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: opacity 0.2s;
+    }
+    .contact-link.call {
       background: var(--color-primary-light);
-      padding: 6px 10px;
-      border-radius: 10px;
-      border: 1px solid var(--color-border);
+      color: #005147;
+      border: 1px solid #85d5c5;
+    }
+    .contact-link.whatsapp {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #86efac;
+    }
+    .contact-link mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
     }
 
-    .match-btn {
+    .ai-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .ai-match-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       background: linear-gradient(135deg, var(--color-primary), var(--color-primary-mid));
-      color: white;
-      border-radius: 9px;
+      color: var(--color-on-primary);
+      border: none;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 81, 71, 0.2);
+    }
+    .ai-match-btn:disabled {
+      opacity: 0.6;
+    }
+
+    .matches-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .match-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--color-card);
+      border: 1.5px solid #005147;
+      border-radius: 12px;
+      padding: 12px 16px;
+      box-shadow: 0 4px 12px rgba(0, 81, 71, 0.06);
+    }
+    .match-meta {
+      flex: 1;
+      padding-right: 12px;
+    }
+    .match-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+    .vol-name {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+    }
+    .match-score {
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: var(--color-primary-light);
+      color: #005147;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+    .match-reason {
+      font-size: 0.78rem;
+      color: var(--color-text-secondary);
+      margin: 0 0 6px;
+      line-height: 1.35;
+    }
+    .match-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .match-tag {
+      font-size: 0.68rem;
+      font-weight: 600;
+      background: var(--color-surface-container-low);
+      color: var(--color-text-secondary);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .request-btn {
+      background: var(--color-primary);
+      color: var(--color-on-primary);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 16px 24px 20px !important;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .cancel-btn {
+      background: transparent;
+      border: 1px solid var(--color-border);
+      color: var(--color-text-secondary);
+      padding: 9px 18px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .status-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #0284c7;
+      color: var(--color-on-primary);
+      border: none;
+      padding: 9px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .complete-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #16a34a;
+      color: var(--color-on-primary);
+      border: none;
+      padding: 9px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
     }
   `]
 })
@@ -297,7 +582,6 @@ export class TaskDetailComponent {
 
   readonly canAssign = computed(() => this.isAssignerRole(this.user()));
 
-  // Coordinators/Admins can see all assignments for a task; volunteers cannot (rules would deny).
   readonly assignments = toSignal(
     this.user$.pipe(
       switchMap((u) => (this.isAssignerRole(u) ? this.firestore.getTaskAssignmentsForTask(this.task.id) : of([] as TaskAssignment[]))),
@@ -305,13 +589,11 @@ export class TaskDetailComponent {
     { initialValue: [] as TaskAssignment[] },
   );
 
-  // Volunteers only read their own deterministic assignment doc.
   private myAssignment$ = this.user$.pipe(
     switchMap((u) => (u ? this.firestore.getTaskAssignment(this.task.id, u.uid) : of(undefined))),
   );
 
   readonly myAssignment = toSignal(this.myAssignment$, { initialValue: undefined });
-
   readonly acceptedAssignments = computed(() => this.assignments().filter((a) => a.status === 'accepted'));
 
   readonly canSeeContacts = computed(() => {
@@ -336,11 +618,6 @@ export class TaskDetailComponent {
 
   close() {
     this.dialogRef.close();
-  }
-
-  getProgressColor(): string {
-    if (this.task.status === 'completed') return 'accent';
-    return 'primary';
   }
 
   async updateStatus(status: 'pending' | 'active' | 'completed') {
@@ -414,32 +691,6 @@ export class TaskDetailComponent {
     } catch (e) {
       console.error('Send request failed', e);
       this.snackBar.open('Failed to send request.', 'OK', { duration: 3000 });
-    } finally {
-      this.actionLoading.set(false);
-    }
-  }
-
-  async respond(status: Exclude<TaskAssignmentStatus, 'pending' | 'cancelled'>) {
-    const u = this.user();
-    if (!u) return;
-
-    this.actionLoading.set(true);
-    try {
-      await this.firestore.respondToTaskAssignment({
-        taskId: this.task.id,
-        volunteerId: u.uid,
-        status,
-      });
-
-      if (status === 'accepted') {
-        await this.firestore.addVolunteerToTask(this.task.id, u.uid);
-        this.snackBar.open('Accepted. Contact unlocked.', 'OK', { duration: 3000 });
-      } else {
-        this.snackBar.open('Declined.', 'OK', { duration: 2500 });
-      }
-    } catch (e) {
-      console.error('Respond failed', e);
-      this.snackBar.open('Failed to update request.', 'OK', { duration: 3000 });
     } finally {
       this.actionLoading.set(false);
     }
