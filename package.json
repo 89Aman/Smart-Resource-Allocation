@@ -24,6 +24,7 @@
     "@angular/router": "^18.2.0",
     "@clerk/clerk-js": "^6.29.0",
     "@googlemaps/markerclusterer": "^2.6.2",
+    "@supabase/supabase-js": "^2.112.3",
     "firebase": "^10.14.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
@@ -45,6 +46,7 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "pg": "^8.23.0",
     "postcss": "^8.5.10",
     "tailwindcss": "^3.4.19",
     "typescript": "~5.5.2"
